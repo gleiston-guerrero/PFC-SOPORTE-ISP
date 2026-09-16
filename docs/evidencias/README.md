@@ -1,5 +1,18 @@
 # Evidencias
 
+## Entregable 11 — Integración web + móvil + backend
+
+[`entregable11_integracion_movil_backend_20260916.md`](entregable11_integracion_movil_backend_20260916.md)
+documenta el cierre en sitio de un ticket ejecutado el 2026-09-16 desde la app móvil instalada en
+un dispositivo Android físico (no un emulador), con foto y GPS reales, contra el *stack* completo
+de Docker levantado en local. Incluye las dos capturas de la app
+([`entregable11_movil_evidencia_gps_foto_20260916.png`](entregable11_movil_evidencia_gps_foto_20260916.png),
+[`entregable11_movil_ticket_resuelto_20260916.png`](entregable11_movil_ticket_resuelto_20260916.png))
+emparejadas con la línea de log real de `ticket-service` y una consulta directa a CockroachDB
+confirmando que la foto (2 417 037 bytes) y las coordenadas quedaron persistidas — log y consulta
+crudos, sin editar, en
+[`entregable11_backend_log_raw_20260916.txt`](entregable11_backend_log_raw_20260916.txt).
+
 ## Nota sobre `captura_demo_paso3_notificacion.png` (retirada)
 
 Una auditoría externa (`PFC_E4_Guia_Consolidacion_ACC.pdf`, sección 3) detectó que este archivo

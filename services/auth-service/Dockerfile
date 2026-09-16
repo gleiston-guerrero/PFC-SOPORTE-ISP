@@ -3,7 +3,14 @@ FROM maven:3.9-eclipse-temurin-21 AS builder
 WORKDIR /app
 
 COPY pom.xml .
-RUN mvn dependency:go-offline -B
+# Reintenta hasta 3 veces con espera creciente si Maven Central no responde momentaneamente
+# (mismo patron que report-service/Dockerfile, ver su comentario).
+RUN for i in 1 2 3; do \
+      mvn dependency:go-offline -B && exit 0; \
+      echo "Intento $i de 'mvn dependency:go-offline' fallo, reintentando en $((i*10))s..."; \
+      sleep $((i*10)); \
+    done; \
+    exit 1
 
 COPY src ./src
 RUN mvn clean package -DskipTests

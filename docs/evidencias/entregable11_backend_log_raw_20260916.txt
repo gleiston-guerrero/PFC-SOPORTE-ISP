@@ -1,0 +1,5 @@
+{"@timestamp":"2026-09-16T05:22:23.962306296Z","@version":"1","message":"\n    update\n        tickets \n    set\n        category=?,\n        client_id=?,\n        description=?,\n        evidence_latitude=?,\n        evidence_longitude=?,\n        evidence_photo=?,\n        priority=?,\n        resolved_at=?,\n        sla_breached=?,\n        sla_deadline=?,\n        status=?,\n        technician_id=?,\n        zone=? \n    where\n        created_at=? \n        and id=?","logger_name":"org.hibernate.SQL","thread_name":"http-nio-8002-exec-8","level":"DEBUG","level_value":10000,"trace_id":"ae0c1200be6d5a797c2ca0cf0765ceda","span_id":"24c5f09f3558b39f","service":"ticket-service"}
+
+--- Consulta directa a CockroachDB (ticket_db.tickets) ---
+id	status	resolved_at	evidence_latitude	evidence_longitude	photo_bytes
+0fb2c5be-3e80-46aa-af79-f2aa597f8e4a	RESUELTO	2026-09-16 05:22:23.950271+00	-1.0123905	-79.4651736	2417037
