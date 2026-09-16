@@ -24,6 +24,18 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 \end{tabular}
 \end{table}
 
+Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
+mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal}
+y \texttt{services/report-service} para los tres servicios Java (15, 88 y 11 pruebas
+respectivamente); \texttt{npm test} (que invoca \texttt{node --test}) dentro de
+\texttt{services/notification-service} (4); \texttt{pytest} dentro de
+\texttt{services/ai-service} (8) — total backend, 126; \texttt{npm test} (que invoca
+\texttt{vitest run}) dentro de \texttt{apps/web} (75); y \texttt{./gradlew
+:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (5). Son los
+mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
+y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
+propio flujo automático en cada envío, no una recontada aparte.
+
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
 
