@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 193/193 backend (5 servicios Java + Node + Python), 75/75 web, 5/5 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 193/193 backend (5 servicios Java + Node + Python), 75/75 web, 11/11 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -31,7 +31,7 @@ para los cinco servicios Java (28, 106, 31, 8 y 8 pruebas respectivamente); \tex
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (4); \texttt{pytest}
 dentro de \texttt{services/ai-service} (8) — total backend, 193; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (75); y \texttt{./gradlew
-:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (5). Son los
+:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (11). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
 propio flujo automático en cada envío, no una recontada aparte.
@@ -83,6 +83,19 @@ memoria por hasta tres criterios independientes, opcionales e insensibles a may�
 tenía prueba; sus 8 pruebas nuevas cubren cada filtro por separado, la combinación de los tres a
 la vez, y el caso que un filtro aplicado por error con \texttt{OR} en vez de \texttt{AND} dejaría
 pasar sin que nadie lo notara.
+
+\texttt{TicketListViewModel} (\texttt{apps/mobile}) tampoco tenía prueba: es el único
+\emph{ViewModel} que combina dos filtros independientes —búsqueda por texto y estado— sobre el
+mismo flujo, con una distinción sutil que solo una prueba puede proteger de verdad: el total y el
+conteo de incumplimientos de SLA se calculan sobre \emph{todos} los tickets, no sobre los ya
+filtrados, así que el resumen sigue siendo correcto aunque la lista visible esté filtrada. Sus 6
+pruebas nuevas usan Turbine para suscribirse al \texttt{StateFlow} —a diferencia de
+\texttt{TicketDetailViewModel} (un \texttt{MutableStateFlow} simple), este expone su estado vía
+\texttt{combine(...).stateIn(..., WhileSubscribed(5\_000), ...)}, que solo empieza a producir
+valores cuando alguien lo está observando— y cubren, además de la distinción de conteos, que la
+búsqueda no distingue mayúsculas, que los dos filtros se combinan con \texttt{AND}, que tocar el
+mismo filtro de estado dos veces lo quita, y que un fallo de red al refrescar conserva los
+tickets ya guardados en caché en vez de vaciar la pantalla.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
