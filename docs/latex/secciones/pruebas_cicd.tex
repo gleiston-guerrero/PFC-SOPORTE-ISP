@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 168/168 backend (5 servicios Java + Node + Python), 75/75 web, 5/5 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 183/183 backend (5 servicios Java + Node + Python), 75/75 web, 5/5 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (19, 106, 15, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (26, 106, 23, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (4); \texttt{pytest}
-dentro de \texttt{services/ai-service} (8) — total backend, 168; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (8) — total backend, 183; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (75); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (5). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -59,6 +59,19 @@ condición, esta clase solo normaliza cuando Spring MVC ya resolvió un \emph{ha
 petición que no matchea ninguna ruta cae a la URI cruda sin normalizar, la misma cardinalidad sin
 límite que la clase existe para evitar. Se deja caracterizado, no corregido, para que quien lo
 arregle tenga la prueba lista para actualizar junto con el fix.
+
+\texttt{JwtAuthenticationFilter}, en \texttt{auth-service}, tampoco tenía prueba propia: la clase
+que puebla el \texttt{SecurityContext} a partir de un token —la pieza que hace que
+\texttt{@PreAuthorize("hasRole('ADMIN')")} funcione en \texttt{AdminUserController}— es distinta de
+\texttt{JwtService} (la emisión y validación del JWT en sí, que ya tenía prueba propia desde antes).
+Sus 7 pruebas nuevas usan un \texttt{JwtService} real, no simulado, e incluyen el caso que este
+filtro más necesita rechazar: un token con la forma correcta pero firmado con un secreto distinto
+al real. \texttt{report-service} tiene su propia copia de \texttt{AuthGatewayFilter} —no idéntica a
+la de \texttt{ticket-service}: agrega una restricción propia (solo el rol \texttt{ADMIN} puede
+consultar reportes, aunque el token sea válido) que no existe en ningún otro servicio, así que
+necesitaba su propia prueba, no la del hermano de \texttt{svc-principal}. Sus 8 pruebas nuevas
+confirman que un \texttt{TECNICO} o \texttt{CLIENTE} con sesión real reciben 403 (prohibido), no
+401 (no autenticado) —son errores distintos que un cliente del API necesita distinguir.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
