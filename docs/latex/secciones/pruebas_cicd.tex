@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 126/126 backend (3 servicios Java + Node + Python), 75/75 web, 5/5 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 142/142 backend (5 servicios Java + Node + Python), 75/75 web, 5/5 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -25,16 +25,24 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 \end{table}
 
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
-mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal}
-y \texttt{services/report-service} para los tres servicios Java (15, 88 y 11 pruebas
-respectivamente); \texttt{npm test} (que invoca \texttt{node --test}) dentro de
-\texttt{services/notification-service} (4); \texttt{pytest} dentro de
-\texttt{services/ai-service} (8) — total backend, 126; \texttt{npm test} (que invoca
+mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
+\texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
+para los cinco servicios Java (15, 88, 11, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
+invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (4); \texttt{pytest}
+dentro de \texttt{services/ai-service} (8) — total backend, 142; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (75); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (5). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
 propio flujo automático en cada envío, no una recontada aparte.
+
+\texttt{api-gateway} y \texttt{telemetry-service} tenían Dockerfile y pruebas JUnit reales en el
+repositorio, pero ningún trabajo del flujo los ejecutaba ni los publicaba (hallazgo documentado
+en el commit \texttt{2c5bba5}, fuera de alcance de esa corrección en su momento). De las 8 pruebas
+nuevas de \texttt{api-gateway}, 7 son de \texttt{HttpMetricsGlobalFilter}: el único filtro del
+\emph{gateway} sin ejercitar, cuya lógica reduce identificadores UUID en la ruta a un marcador de
+posición (\texttt{/api/v1/tickets/\{id\}}) para no romper la cardinalidad de las métricas de
+Prometheus.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
@@ -109,10 +117,10 @@ pasar por los mismos controles~\cite{kim2021devops,humble2010continuous}:
 \textbf{\#} & \textbf{Job} & \textbf{Qué hace} \\
 \midrule
 1 & \texttt{lint} & ESLint (web) + Android Lint (móvil) \\
-2 & \texttt{test-backend} & Los tres servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
+2 & \texttt{test-backend} & Los cinco servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
 3 & \texttt{test-web} & Vitest, incluido el contrato Pact del consumidor \\
 4 & \texttt{test-mobile} & Unitarias JVM + instrumentadas en un emulador Android headless real \\
-5 & \texttt{build-images} & Construye y publica las siete imágenes Docker en GHCR (solo en \emph{push}) \\
+5 & \texttt{build-images} & Construye y publica las ocho imágenes Docker en GHCR (solo en \emph{push}) \\
 6 & \texttt{build-mobile-apk} & Compila el APK de depuración y lo publica como artefacto \\
 7 & \texttt{integration} & Levanta el \emph{stack} completo y corre Pact proveedor + Playwright contra el backend real \\
 \bottomrule
