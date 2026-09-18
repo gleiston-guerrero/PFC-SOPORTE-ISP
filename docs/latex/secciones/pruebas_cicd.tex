@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 119/119 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 123/123 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -30,7 +30,7 @@ mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{servic
 para los cinco servicios Java (54, 140, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
 dentro de \texttt{services/ai-service} (16) — total backend, 279; \texttt{npm test} (que invoca
-\texttt{vitest run}) dentro de \texttt{apps/web} (119); y \texttt{./gradlew
+\texttt{vitest run}) dentro de \texttt{apps/web} (123); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
@@ -394,6 +394,18 @@ copia de \texttt{STATUS\_VAR}, independiente de la de \texttt{Badges.tsx} (Ronda
 manuales que deben mantenerse sincronizados a mano, sin nada que los ate—, y su
 \texttt{colorFor(key) ?? 'var(--color-navy)'} para un estado no reconocido nunca se probaba. Sus
 4 pruebas nuevas cierran los cuatro huecos.
+
+\texttt{LoginPage} (\texttt{apps/web}) tenía solo dos pruebas para sus 281 líneas —la mayoría
+constantes de estilo, pero con lógica real de todas formas—: la validación local de campos
+vacíos y que escribir la limpia. Ninguna de las dos ejercitaba \texttt{authApi.login} de verdad
+—quedaba sin mockear, así que cualquier intento de \emph{submit} real habría fallado por red
+antes de poder observarse—, así que el flujo completo de autenticación nunca se probaba de
+punta a punta: ni que un \emph{login} exitoso navegue a \texttt{/main}, ni que el correo se
+recorte antes de enviarse (la contraseña, deliberadamente, no), ni que un fallo del backend
+muestre el mensaje de error real en vez de quedar mudo. Tampoco se probaba el botón del ojo que
+alterna el campo de contraseña entre oculto y visible. Sus 4 pruebas nuevas —mockeando
+\texttt{authApi.login} con el mismo criterio que \texttt{useAuth.test.tsx}— cierran los cuatro
+huecos.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
