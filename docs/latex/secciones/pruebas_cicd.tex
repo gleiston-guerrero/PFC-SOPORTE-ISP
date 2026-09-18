@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 126/126 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -30,7 +30,7 @@ mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{servic
 para los cinco servicios Java (54, 140, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
 dentro de \texttt{services/ai-service} (16) — total backend, 279; \texttt{npm test} (que invoca
-\texttt{vitest run}) dentro de \texttt{apps/web} (126); y \texttt{./gradlew
+\texttt{vitest run}) dentro de \texttt{apps/web} (128); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
@@ -418,6 +418,16 @@ del mismo patrón de hueco (\texttt{Badges.tsx}, Ronda 23; \texttt{ReportsPage},
 rol-a-color, y las pruebas existentes solo verificaban la etiqueta traducida
 (\texttt{"Administrador"}, \texttt{"Técnico"}), nunca que los tres roles tuvieran colores de
 insignia distintos entre sí. Sus 3 pruebas nuevas cierran los tres huecos.
+
+\texttt{SettingsPage} (\texttt{apps/web}) ya tenía dos pruebas —cambiar idioma, cambiar
+tema—, pero ninguna cubría el \emph{guard} \texttt{mode !== 'light' \&\& toggle()}: sin él,
+reclicar el botón del tema ya activo llamaría a \texttt{toggle()} igual y cambiaría al otro
+tema por error, el mismo tipo de \emph{guard} redundante ya protegido en
+\texttt{TicketRowActions} (Ronda 22) para el estado del ticket. Tampoco se comparaba
+\texttt{pillStyle(active)} entre el botón activo y el inactivo —quinta aparición del patrón de
+hueco de color/estilo nunca verificado (\texttt{Badges.tsx}, Ronda 23; \texttt{ReportsPage},
+Ronda 26; \texttt{StatusColors.kt} en móvil, Ronda 15; \texttt{AppLayout}, Ronda 28)—. Sus 2
+pruebas nuevas cierran ambos huecos.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
