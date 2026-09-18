@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 207/207 backend (5 servicios Java + Node + Python), 94/94 web, 20/20 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 215/215 backend (5 servicios Java + Node + Python), 94/94 web, 20/20 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (31, 106, 31, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (31, 114, 31, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (12) — total backend, 207; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (12) — total backend, 215; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (94); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (20). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -143,6 +143,20 @@ pero nada confirmaba que quedara registrado con ese nombre exacto ni que refleja
 del repositorio; sus 3 pruebas nuevas usan un \texttt{SimpleMeterRegistry} real y comprueban,
 entre otras cosas, que el \emph{Gauge} se recalcula en cada lectura y no queda cacheado con el
 primer valor.
+
+Dos piezas más en \texttt{svc-principal}. \texttt{RepositoryTimingAspect} —el único punto de
+instrumentación del histograma \texttt{crdb\_query\_duration\_seconds}, vía AOP sobre todo el
+paquete de persistencia— no tenía prueba, y su garantía central (el cronómetro vive en un bloque
+\texttt{finally}) nunca se había verificado: sus 4 pruebas nuevas confirman que una consulta que
+falla igual cuenta para el histograma, y que la excepción real sigue propagándose sin que el
+aspecto la trague. \texttt{TicketMapper} —la traducción campo a campo entre el dominio puro y su
+entidad JPA— tampoco tenía prueba, pese a que un mapeo así es exactamente el tipo de código que
+se rompe en silencio cuando se agrega un campo a un lado y se olvida el otro: ya pasó de verdad
+con los campos de evidencia (\texttt{evidencePhoto}/\texttt{evidenceLatitude}/%
+\texttt{evidenceLongitude}, Entregable 10), agregados a \texttt{Ticket} y \texttt{TicketJpaEntity}
+por separado. Sus 4 pruebas nuevas incluyen un viaje de ida y vuelta campo por campo con
+\texttt{usingRecursiveComparison()}, que fallaría de inmediato si un campo nuevo se agregara a un
+lado sin el otro.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
