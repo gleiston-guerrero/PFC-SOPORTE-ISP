@@ -33,6 +33,8 @@ public class UpdateTicketStatusHandler implements TicketCommandHandler<UpdateTic
         this.eventPublisher = eventPublisher;
     }
 
+    private static final String ROLE_TECNICO = "TECNICO";
+
     @Override
     public Ticket handle(UpdateTicketStatusCommand command) {
         Ticket ticket = ticketRepository.findByTicketId(command.ticketId())
@@ -40,15 +42,35 @@ public class UpdateTicketStatusHandler implements TicketCommandHandler<UpdateTic
         authorization.assertCanManage(ticket, command.role(), command.authZone());
 
         TicketStatus oldStatus = ticket.getStatus();
+
+        // Idempotencia del cierre en sitio (Entregable 10): el movil reintenta el mismo PATCH
+        // hasta 3 veces si no recibe respuesta (TicketRepository.kt), lo que puede repetir una
+        // escritura que si llego al servidor. Si el ticket ya esta en el estado pedido, no hay
+        // nada que cambiar -- se devuelve tal cual, sin recalcular resolvedAt/slaBreached (que
+        // podria voltear de falso a verdadero solo por el tiempo transcurrido en el reintento)
+        // ni volver a publicar el evento de cambio de estado, que ya se publico la vez que si
+        // proceso.
+        if (oldStatus == command.newStatus()) {
+            return ticket;
+        }
+
         ticket.setStatus(command.newStatus());
         if (command.newStatus() == TicketStatus.RESUELTO) {
+            // La evidencia es obligatoria para TECNICO (el cierre en sitio real, vía movil);
+            // un ADMIN puede resolver un ticket sin pasar por el movil (p.ej. corrigiendo un
+            // estado a mano), asi que para ese rol se mantiene opcional a proposito.
+            if (ROLE_TECNICO.equals(command.role())
+                    && (command.evidencePhoto() == null
+                    || command.evidenceLatitude() == null
+                    || command.evidenceLongitude() == null)) {
+                throw new IllegalArgumentException(
+                        "El cierre en sitio requiere foto y coordenadas de evidencia");
+            }
             ticket.setResolvedAt(OffsetDateTime.now());
             ticket.setSlaBreached(
                     ticket.getSlaDeadline() != null
                             && ticket.getResolvedAt().isAfter(ticket.getSlaDeadline())
             );
-            // Evidencia del cierre en sitio (Entregable 10 de la guia de cierre): opcional a
-            // proposito -- un ADMIN puede resolver un ticket sin pasar por el movil.
             if (command.evidencePhoto() != null) {
                 ticket.setEvidencePhoto(command.evidencePhoto());
             }

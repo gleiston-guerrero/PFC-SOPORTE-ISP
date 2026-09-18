@@ -195,6 +195,61 @@ class UpdateTicketStatusHandlerTest {
     }
 
     @Test
+    void updateStatus_reintentoIdempotente_noRecalculaNiRepublica() {
+        // Entregable 10: el movil reintenta el mismo PATCH RESUELTO hasta 3 veces ante
+        // IOException, incluso si la primera escritura si llego al servidor y solo se perdio
+        // la respuesta. Antes de este arreglo, el segundo PATCH volvia a poner resolvedAt=now(),
+        // podia voltear slaBreached de falso a verdadero solo por el tiempo transcurrido, y
+        // volvia a publicar ticket.status-changed.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_SUR, id);
+        existing.setStatus(TicketStatus.RESUELTO);
+        OffsetDateTime resolvedAt = OffsetDateTime.now().minusMinutes(5);
+        existing.setResolvedAt(resolvedAt);
+        existing.setSlaBreached(false);
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+
+        Ticket result = handler().handle(
+                new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "TECNICO", Zone.QUEVEDO_SUR,
+                        new byte[]{1}, -1.0, -79.0));
+
+        assertThat(result.getResolvedAt()).isEqualTo(resolvedAt);
+        assertThat(result.isSlaBreached()).isFalse();
+        org.mockito.Mockito.verifyNoInteractions(ticketWriter, eventPublisher);
+    }
+
+    @Test
+    void updateStatus_tecnicoSinEvidencia_lanzaIllegalArgument() {
+        // El servidor trataba la evidencia como opcional para cualquier rol; un TECNICO podia
+        // cerrar un ticket sin foto ni GPS llamando la API directo, sin pasar por el movil, que
+        // es donde vivia la unica regla que lo exigia (Entregable 10).
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_SUR, id);
+        existing.setStatus(TicketStatus.EN_PROGRESO);
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> handler().handle(
+                new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "TECNICO", Zone.QUEVEDO_SUR, null, null, null)))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void updateStatus_adminSinEvidencia_siguePermitido() {
+        // Un ADMIN puede resolver un ticket sin pasar por el movil (p.ej. corrigiendolo a
+        // mano); esa excepcion es intencional y no debe romperse con la exigencia nueva.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_SUR, id);
+        existing.setStatus(TicketStatus.EN_PROGRESO);
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+        when(ticketWriter.saveWithRetry(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = handler().handle(
+                new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "ADMIN", null, null, null, null));
+
+        assertThat(result.getStatus()).isEqualTo(TicketStatus.RESUELTO);
+    }
+
+    @Test
     void updateStatus_ticketNotFound_throws() {
         // Unica linea que el reporte JaCoCo del modulo seguia marcando parcial
         // (orElseThrow del find) despues de la Ronda 18 -- el resto del manejador ya
