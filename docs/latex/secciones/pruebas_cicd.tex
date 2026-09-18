@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 302/302 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 315/315 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (62, 149, 37, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (63, 161, 37, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (15); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 302; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (16) — total backend, 315; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (128); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -647,9 +647,9 @@ de líneas.
 \toprule
 \textbf{Métrica} & \textbf{Cubierto} & \textbf{Total} & \textbf{\%} \\
 \midrule
-Líneas & 555 & 684 & \textbf{81.1\,\%} \\
-Instrucciones & 2582 & 3582 & 72.1\,\% \\
-Ramas & 88 & 154 & 57.1\,\% \\
+Líneas & 692 & 716 & \textbf{96.6\,\%} \\
+Instrucciones & 3392 & 3813 & 89.0\,\% \\
+Ramas & 127 & 162 & 78.4\,\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -658,16 +658,25 @@ Las tres cifras son ciertas simultáneamente y miden cosas distintas: líneas cu
 ejecutadas, instrucciones cuenta a nivel de bytecode (más granular, penaliza más una rama sin
 cubrir dentro de una misma línea), y ramas cuenta específicamente las bifurcaciones
 condicionales (\texttt{if}/\texttt{switch}/operadores lógicos de corto circuito) — es la más
-exigente y la que queda más lejos del objetivo del 70\,\% que el proyecto se propuso desde la
-Entrega 3. El paquete concreto que más arrastra la cifra de ramas hacia abajo es
-\texttt{infrastructure.security} (filtro y configuración de JWT), con \textbf{0 de 38 líneas
-cubiertas}: ningún test ejercita las ramas de token inválido/expirado/ausente directamente sobre
-esas clases —sí se ejercitan indirectamente por las pruebas de integración HTTP 401/403, pero
-JaCoCo no atribuye esa cobertura a la clase que realmente decide el rechazo—, y queda declarado
-aquí como una brecha real en vez de diluirse en el promedio general.
+exigente y la que ya superó ampliamente el objetivo del 70\,\% que el proyecto se propuso desde
+la Entrega 3 (78.4\,\%, tras las rondas de pruebas de esta entrega). El paquete
+\texttt{infrastructure.security} (filtro y configuración de JWT), que en una revisión externa
+anterior a esta corrección tenía \textbf{0 de 38 líneas cubiertas} —ningún test ejercitaba las
+ramas de token inválido/expirado/ausente directamente sobre esas clases, solo indirectamente vía
+las pruebas de integración HTTP 401/403, que JaCoCo no le atribuye—, quedó cerrado con
+\texttt{AuthGatewayFilterTest} (38 de 38 líneas cubiertas ahora). El paquete que más arrastra la
+cifra de ramas hacia abajo hoy es \texttt{domain}, y en concreto una sola clase:
+\texttt{TicketId} (0 de 22 ramas cubiertas). No es una omisión: \texttt{TicketId} es la clave
+compuesta \texttt{@IdClass} de \texttt{Ticket} (\texttt{createdAt}, \texttt{id}), generada por
+Lombok (\texttt{@Data}) para \texttt{equals()}/\texttt{hashCode()}; igual que el código generado
+por \texttt{protobuf} más abajo en esta sección, ninguna convención de pruebas exige ejercitar a
+mano cada rama de un \texttt{equals} mecánico sobre dos campos, y el propio JPA nunca invoca esa
+clave compuesta en tiempo de ejecución —el punto de acceso real es
+\texttt{TicketRepository.findByTicketId(UUID)}, como documenta el comentario de la clase—, así
+que se declara aquí como brecha conocida y deliberadamente no priorizada, no oculta.
 
-El reporte XML de JaCoCo agrega, a nivel de \texttt{<report>}, un total de 551/679 líneas —no
-las 555/684 que resultan de sumar el CSV fila por fila. La diferencia no es un error de cálculo:
+El reporte XML de JaCoCo agrega, a nivel de \texttt{<report>}, un total de 687/711 líneas —no
+las 692/716 que resultan de sumar el CSV fila por fila. La diferencia no es un error de cálculo:
 cinco archivos fuente (\texttt{AuthGatewayFilter.java}, \texttt{Incidencia.java},
 \texttt{Ticket.java}, \texttt{IncidenciaJpaEntity.java} y \texttt{TicketJpaEntity.java}) contienen
 dos clases cada uno —una externa y una interna o lambda generada por el compilador—, y el CSV

@@ -11,7 +11,7 @@ OpenTelemetry~\cite{opentelemetry2024spec}; se implementó una pirámide de prue
 (unitarias, integración, contrato con Pact, E2E en tres navegadores, carga con Locust) automatizada
 en un pipeline de CI/CD de diez \emph{jobs}; y se midieron cinco características de calidad con
 métricas objetivas e intervalos de confianza al 95\,\%. \textbf{Resultados.} El sistema cumple
-Compatibilidad (9/9 pruebas E2E en tres navegadores) y Mantenibilidad (81.1\,\% de cobertura de
+Compatibilidad (9/9 pruebas E2E en tres navegadores) y Mantenibilidad (96.6\,\% de cobertura de
 pruebas y complejidad ciclomática de 1.8, ambos dentro del umbral); Eficiencia y Fiabilidad no
 alcanzan su umbral bajo
 carga concurrente real, con causa raíz identificada en un límite de licencia del motor de base de
@@ -33,10 +33,10 @@ documented as an ADR against the real design problem it solved; a web client (Re
 mobile client (Kotlin, justified with two quantitative criteria measured on the actual project)
 were built; the system was instrumented with OpenTelemetry's three observability
 signals~\cite{opentelemetry2024spec}; a complete test pyramid (unit, integration, Pact contract,
-three-browser E2E, Locust load) was automated in a seven-job CI/CD pipeline; and five quality
+three-browser E2E, Locust load) was automated in a ten-job CI/CD pipeline; and five quality
 characteristics were measured with objective metrics and 95\,\% confidence intervals.
 \textbf{Results.} The system meets Compatibility (9/9 E2E tests across three browsers) and
-Maintainability (81.1\,\% test coverage and a cyclomatic complexity of 1.8, both within
+Maintainability (96.6\,\% test coverage and a cyclomatic complexity of 1.8, both within
 threshold); Performance
 Efficiency and Reliability fall short under real concurrent load, with root cause traced to a
 database-engine license limit rather than application logic; Security is partially mitigated,
