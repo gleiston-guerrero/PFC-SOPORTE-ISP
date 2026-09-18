@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 200/200 backend (5 servicios Java + Node + Python), 85/85 web, 11/11 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 200/200 backend (5 servicios Java + Node + Python), 94/94 web, 20/20 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -30,8 +30,8 @@ mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{servic
 para los cinco servicios Java (28, 106, 31, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (7); \texttt{pytest}
 dentro de \texttt{services/ai-service} (12) — total backend, 200; \texttt{npm test} (que invoca
-\texttt{vitest run}) dentro de \texttt{apps/web} (85); y \texttt{./gradlew
-:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (11). Son los
+\texttt{vitest run}) dentro de \texttt{apps/web} (94); y \texttt{./gradlew
+:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (20). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
 propio flujo automático en cada envío, no una recontada aparte.
@@ -114,6 +114,23 @@ usaba de paso en \texttt{ProtectedRoute.test.tsx} pero nunca se ejercitaban
 \texttt{login()}/\texttt{logout()} ni los estados \texttt{loading}/\texttt{error}; sus 7 pruebas
 nuevas cubren el flujo completo, incluido un rechazo que no es una instancia de \texttt{Error}
 (la rama que cae al mensaje genérico).
+
+Dos piezas más, una en cada cliente, seguían sin prueba propia. \texttt{TicketDetailModal}
+(\texttt{apps/web}): pide de nuevo el ticket al backend en vez de reusar el objeto de la fila
+—para no mostrar un estado desactualizado si \texttt{EscalationScheduler} lo cambió entre que
+se cargó la lista y el clic— y tiene una guardia de cierre (clic en el fondo cierra el modal,
+clic dentro del contenido no) fácil de romper sin que ninguna prueba lo note; sus 9 pruebas
+nuevas cubren el estado de carga, el de error, y confirman explícitamente que un clic dentro
+del contenido \emph{no} dispara \texttt{onClose}. \texttt{TicketRepository}
+(\texttt{apps/mobile}): la pieza con más lógica de negocio propia de toda la app móvil —el
+reintento de \texttt{closeOnSite} (solo ante fallo de \emph{red}, nunca ante un 4xx/5xx real) y
+el patrón caché-primero de \texttt{getTicket}— solo se ejercitaba indirectamente a través de
+\texttt{TicketDetailViewModelTest}, que mockea el repositorio entero y nunca corre su lógica
+real. Sus 9 pruebas nuevas mockean \texttt{android.util.Base64} de forma estática (no disponible
+en pruebas JVM puras, razón por la que ningún otro archivo lo había tocado hasta ahora) y
+confirman, entre otras cosas, que un error HTTP real no dispara reintento —a diferencia de un
+fallo de red, que sí— y que agotar los 3 intentos sin conexión propaga la excepción real, no una
+genérica.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
