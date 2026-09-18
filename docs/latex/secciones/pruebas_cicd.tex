@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 262/262 backend (5 servicios Java + Node + Python), 94/94 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 269/269 backend (5 servicios Java + Node + Python), 94/94 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (54, 123, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (54, 130, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 262; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (16) — total backend, 269; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (94); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -265,6 +265,20 @@ ya revocó el mismo token, no debe volver a escribir en la base), ni el caso de 
 desconocido. Tampoco \texttt{validate()} —el único método que traduce los \emph{claims} ya
 verificados del JWT a la respuesta que consume el \emph{API Gateway}— tenía prueba propia. Sus 7
 pruebas nuevas cierran los seis huecos.
+
+\texttt{TicketQueryService} (\texttt{svc-principal}) —hallado revisando el reporte de cobertura
+JaCoCo del módulo, no por inspección manual— ya tenía una suite de 9 pruebas, pero cubría menos
+de la mitad de las ramas reales de la matriz de autorización por rol
+(\texttt{TicketAuthorization}, ver su tabla \texttt{CLIENTE}/\texttt{TECNICO}/\texttt{ADMIN}).
+De \texttt{getTicket()} solo estaba probado el camino \emph{prohibido} de \texttt{TECNICO} (otra
+zona) y el de \texttt{ADMIN} contra un ticket inexistente —nunca el camino permitido de ninguno
+de los dos roles con un ticket real. De \texttt{listTickets()} faltaban las tres ramas con filtro
+de estado combinado con rol (\texttt{CLIENTE}, \texttt{TECNICO} y \texttt{ADMIN} con
+\texttt{zone}+\texttt{status}), la rama de \texttt{ADMIN} con solo zona, y —la más importante— el
+\emph{fallback} final para un rol no reconocido: sin prueba, nada garantizaba que un rol nuevo o
+mal escrito cayera a lista vacía (\emph{fail-closed}) en vez de, por accidente de refactor,
+colarse en alguna rama y filtrar tickets que no le correspondían. Sus 7 pruebas nuevas cierran
+los siete huecos, incluida esa última como caso explícito.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}

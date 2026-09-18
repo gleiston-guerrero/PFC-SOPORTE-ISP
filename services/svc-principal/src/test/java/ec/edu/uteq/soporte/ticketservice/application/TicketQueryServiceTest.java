@@ -124,6 +124,90 @@ class TicketQueryServiceTest {
         assertThat(result).containsExactly(t);
     }
 
+    @Test
+    void getTicket_byTecnicoInTheSameZone_isAllowed() {
+        // Solo estaba probado el caso "otra zona -> forbidden"; el camino permitido de
+        // TECNICO en getTicket nunca se ejercitaba.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_NORTE, id);
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+
+        Ticket result = service().getTicket(id, "TECNICO", UUID.randomUUID(), Zone.QUEVEDO_NORTE);
+
+        assertThat(result.getId()).isEqualTo(id);
+    }
+
+    @Test
+    void getTicket_byAdmin_isAllowedRegardlessOfOwnershipOrZone() {
+        // La prueba existente de ADMIN en getTicket solo cubria el caso "no encontrado", nunca
+        // el camino real de "encontrado y sin restriccion" que describe la tabla de
+        // TicketAuthorization.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_SUR, id);
+        existing.setClientId(UUID.randomUUID());
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+
+        Ticket result = service().getTicket(id, "ADMIN", UUID.randomUUID(), Zone.QUEVEDO_NORTE);
+
+        assertThat(result.getId()).isEqualTo(id);
+    }
+
+    @Test
+    void listTickets_asCliente_withStatusFilter_usesFindByClientIdAndStatus() {
+        // La unica prueba existente de CLIENTE dejaba status=null; la rama con status nunca
+        // se ejercitaba, y usa un metodo de repositorio distinto (findByClientIdAndStatus).
+        UUID clientId = UUID.randomUUID();
+        Ticket own = ticketIn(Zone.QUEVEDO_NORTE, UUID.randomUUID());
+        own.setClientId(clientId);
+        when(ticketRepository.findByClientIdAndStatus(clientId, TicketStatus.RESUELTO)).thenReturn(List.of(own));
+
+        List<Ticket> result = service().listTickets(null, TicketStatus.RESUELTO, "CLIENTE", clientId, null);
+
+        assertThat(result).containsExactly(own);
+    }
+
+    @Test
+    void listTickets_asTecnico_withStatusFilter_usesFindByZoneAndStatus() {
+        Ticket t = ticketIn(Zone.QUEVEDO_NORTE, UUID.randomUUID());
+        when(ticketRepository.findByZoneAndStatus(Zone.QUEVEDO_NORTE, TicketStatus.ASIGNADO)).thenReturn(List.of(t));
+
+        List<Ticket> result = service().listTickets(
+                null, TicketStatus.ASIGNADO, "TECNICO", UUID.randomUUID(), Zone.QUEVEDO_NORTE);
+
+        assertThat(result).containsExactly(t);
+    }
+
+    @Test
+    void listTickets_asAdmin_withZoneAndStatus_usesFindByZoneAndStatus() {
+        Ticket t = ticketIn(Zone.QUEVEDO_CENTRO, UUID.randomUUID());
+        when(ticketRepository.findByZoneAndStatus(Zone.QUEVEDO_CENTRO, TicketStatus.NUEVO)).thenReturn(List.of(t));
+
+        List<Ticket> result = service().listTickets(
+                Zone.QUEVEDO_CENTRO, TicketStatus.NUEVO, "ADMIN", UUID.randomUUID(), null);
+
+        assertThat(result).containsExactly(t);
+    }
+
+    @Test
+    void listTickets_asAdmin_withZoneOnly_usesFindByZone() {
+        Ticket t = ticketIn(Zone.QUEVEDO_SUR, UUID.randomUUID());
+        when(ticketRepository.findByZone(Zone.QUEVEDO_SUR)).thenReturn(List.of(t));
+
+        List<Ticket> result = service().listTickets(Zone.QUEVEDO_SUR, null, "ADMIN", UUID.randomUUID(), null);
+
+        assertThat(result).containsExactly(t);
+    }
+
+    @Test
+    void listTickets_withAnUnrecognizedRole_returnsEmptyInsteadOfEverything() {
+        // El fallback final del metodo: un rol que no sea ninguno de los tres reconocidos no
+        // debe devolver todos los tickets por descarte -- debe devolver una lista vacia
+        // (fail-closed), no una fuga de datos por un rol nuevo o mal escrito.
+        List<Ticket> result = service().listTickets(null, null, "ROL_INVENTADO", UUID.randomUUID(), null);
+
+        assertThat(result).isEmpty();
+    }
+
     private Ticket ticketIn(Zone zone, UUID id) {
         return Ticket.builder()
                 .zone(zone)
