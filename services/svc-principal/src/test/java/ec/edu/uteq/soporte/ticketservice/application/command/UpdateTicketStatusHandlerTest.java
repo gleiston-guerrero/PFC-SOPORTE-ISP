@@ -156,6 +156,43 @@ class UpdateTicketStatusHandlerTest {
         assertThat(result.getStatus()).isEqualTo(TicketStatus.ASIGNADO);
     }
 
+    @Test
+    void updateStatus_toResuelto_beforeDeadline_isNotSlaBreached() {
+        // La unica prueba existente de resolucion dejaba el SLA ya vencido; la rama negativa
+        // de isAfter() (resuelto A TIEMPO) nunca se ejercitaba.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_SUR, id);
+        existing.setStatus(TicketStatus.EN_PROGRESO);
+        existing.setSlaDeadline(OffsetDateTime.now().plusHours(6)); // todavia no vence
+
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+        when(ticketWriter.saveWithRetry(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = handler().handle(
+                new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "ADMIN", null, null, null, null));
+
+        assertThat(result.isSlaBreached()).isFalse();
+    }
+
+    @Test
+    void updateStatus_toResuelto_withNoSlaDeadline_isNeverBreached() {
+        // El "&&" de la condicion tiene un cortocircuito por slaDeadline == null (un ticket
+        // sin plazo formal, p.ej. antes de que ai-service lo clasifique) que ninguna prueba
+        // ejercitaba -- sin el, un NullPointerException tumbaria el cierre del ticket.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_SUR, id);
+        existing.setStatus(TicketStatus.EN_PROGRESO);
+        existing.setSlaDeadline(null);
+
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+        when(ticketWriter.saveWithRetry(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = handler().handle(
+                new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "ADMIN", null, null, null, null));
+
+        assertThat(result.isSlaBreached()).isFalse();
+    }
+
     private Ticket ticketIn(Zone zone, UUID id) {
         return Ticket.builder()
                 .zone(zone)
