@@ -36,6 +36,20 @@ mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
 propio flujo automático en cada envío, no una recontada aparte.
 
+La fila «Unitaria» no es una población disjunta de las filas «Integración» y «Contrato»: los 315
+de backend incluyen las 2 pruebas de \texttt{TicketRepositoryIntegrationTest} (Testcontainers, la
+misma clase que reporta la fila «Integración», porque \texttt{mvn test} las ejecuta en el mismo
+módulo) y \emph{no} incluyen la prueba de proveedor Pact de \texttt{svc-principal}, que
+\texttt{mvn test} omite con \texttt{@EnabledIfSystemProperty} salvo que se invoque explícitamente
+(\texttt{-Dpact.verifier.publishResults=true}), y que la fila «Contrato» sí cuenta por separado
+al correrla así. Los 128 de web incluyen las 2 pruebas de consumidor Pact
+(\texttt{apps/web/tests/contract/ticketsApi.pact.test.ts}), que la fila «Contrato» vuelve a
+publicar como «2/2 consumidor». Se documenta así, en vez de depurar cada fila para que sea
+disjunta de las demás, porque las cifras de «Unitaria» son literalmente lo que produce
+\texttt{mvn test}/\texttt{npm test} sin banderas adicionales —el mismo comando que corre la CI—, y
+alterar esa cifra para excluir pruebas que técnicamente conviven en el mismo módulo dejaría de
+corresponder a la salida real del comando publicado.
+
 \texttt{api-gateway} y \texttt{telemetry-service} tenían Dockerfile y pruebas JUnit reales en el
 repositorio, pero ningún trabajo del flujo los ejecutaba ni los publicaba (hallazgo documentado
 en el commit \texttt{2c5bba5}, fuera de alcance de esa corrección en su momento). De las 8 pruebas
@@ -709,8 +723,10 @@ ese umbral, \texttt{mvn test} falla con la razón exacta.
 
 Antes de escribir pruebas nuevas para esta entrega, el código propio (sin el generado) ya estaba
 en 64.4\,\%. Se identificaron con el propio reporte de JaCoCo las clases reales con mayor número
-de líneas sin cubrir — no una elección arbitraria — y se agregaron 31 pruebas unitarias nuevas
-(87 en total en el módulo, todas en verde) sobre, entre otras: \texttt{CorrelationService} (el
+de líneas sin cubrir — no una elección arbitraria — y se agregaron 31 pruebas unitarias nuevas en
+esa ronda inicial (la cifra total del módulo, acumulada tras todas las rondas posteriores, es la
+que reporta la Tabla~\ref{tab:piramide}, no un número fijo en este párrafo) sobre, entre otras:
+\texttt{CorrelationService} (el
 orquestador de \texttt{CORREL}, que llegó a esta entrega prácticamente sin pruebas propias), los
 tres observadores concretos del patrón Observer (\texttt{EscalationLoggingObserver},
 \texttt{EscalationMetricsObserver}, \texttt{EscalationEventPublisherObserver} — cerrando un hueco
