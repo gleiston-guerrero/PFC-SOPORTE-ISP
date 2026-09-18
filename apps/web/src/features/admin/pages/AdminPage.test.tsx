@@ -65,6 +65,77 @@ describe('AdminPage', () => {
     expect(await screen.findByText('Cuenta creada: nuevo@test.com')).toBeInTheDocument()
   })
 
+  it('crea una cuenta TECNICO enviando la zona elegida, no null', async () => {
+    // La unica prueba existente de creacion exitosa dejaba el rol por defecto (CLIENTE, zone
+    // null); el camino real donde SI se envia una zona -- exigido por AuthService.validateZoneForRole
+    // en el backend -- nunca se ejercitaba.
+    vi.spyOn(adminApi, 'listUsers').mockResolvedValue([])
+    const createSpy = vi.spyOn(adminApi, 'createUser').mockResolvedValue({ ...existingUser, email: 'tec@test.com' })
+    render(<AdminPage />)
+    await waitFor(() => expect(adminApi.listUsers).toHaveBeenCalled())
+
+    fireEvent.click(screen.getByRole('button', { name: 'Técnico' }))
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'tec@test.com' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Passw0rd!' } })
+    fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Tecnico Nuevo' } })
+    fireEvent.change(screen.getByLabelText('Zona (técnico)'), { target: { value: 'QUEVEDO_SUR' } })
+    fireEvent.click(screen.getByRole('button', { name: '+ Crear cuenta' }))
+
+    await waitFor(() =>
+      expect(createSpy).toHaveBeenCalledWith(expect.objectContaining({ role: 'TECNICO', zone: 'QUEVEDO_SUR' })),
+    )
+  })
+
+  it('muestra un error generico si la creacion falla en el servidor', async () => {
+    // La unica prueba de error del formulario existente era la validacion local (campos
+    // vacios); el fallo real de la API -- correo duplicado, por ejemplo -- nunca se probaba.
+    vi.spyOn(adminApi, 'listUsers').mockResolvedValue([])
+    vi.spyOn(adminApi, 'createUser').mockRejectedValue(new Error('409'))
+    render(<AdminPage />)
+    await waitFor(() => expect(adminApi.listUsers).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'ya@existe.com' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Passw0rd!' } })
+    fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Alguien' } })
+    fireEvent.click(screen.getByRole('button', { name: '+ Crear cuenta' }))
+
+    expect(await screen.findByText('No se pudo crear la cuenta')).toBeInTheDocument()
+  })
+
+  it('limpia correo, contraseña y nombre despues de crear la cuenta con exito', async () => {
+    // Solo se confirmaba el mensaje de exito, nunca que el formulario realmente se
+    // limpiara para poder cargar la siguiente cuenta sin arrastrar datos de la anterior.
+    vi.spyOn(adminApi, 'listUsers').mockResolvedValue([])
+    vi.spyOn(adminApi, 'createUser').mockResolvedValue({ ...existingUser, email: 'nuevo2@test.com' })
+    render(<AdminPage />)
+    await waitFor(() => expect(adminApi.listUsers).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: 'nuevo2@test.com' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: 'Passw0rd!' } })
+    fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: 'Cliente Nuevo 2' } })
+    fireEvent.click(screen.getByRole('button', { name: '+ Crear cuenta' }))
+
+    await screen.findByText('Cuenta creada: nuevo2@test.com')
+    expect(screen.getByLabelText('Correo')).toHaveValue('')
+    expect(screen.getByLabelText('Contraseña')).toHaveValue('')
+    expect(screen.getByLabelText('Nombre completo')).toHaveValue('')
+  })
+
+  it('campos de puro espacio en blanco cuentan como vacios', async () => {
+    vi.spyOn(adminApi, 'listUsers').mockResolvedValue([])
+    const createSpy = vi.spyOn(adminApi, 'createUser')
+    render(<AdminPage />)
+    await waitFor(() => expect(adminApi.listUsers).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('Correo'), { target: { value: '   ' } })
+    fireEvent.change(screen.getByLabelText('Contraseña'), { target: { value: '   ' } })
+    fireEvent.change(screen.getByLabelText('Nombre completo'), { target: { value: '   ' } })
+    fireEvent.click(screen.getByRole('button', { name: '+ Crear cuenta' }))
+
+    expect(await screen.findByText('Completa correo, contraseña y nombre')).toBeInTheDocument()
+    expect(createSpy).not.toHaveBeenCalled()
+  })
+
   it('muestra un error si faltan campos obligatorios', async () => {
     vi.spyOn(adminApi, 'listUsers').mockResolvedValue([])
     render(<AdminPage />)
