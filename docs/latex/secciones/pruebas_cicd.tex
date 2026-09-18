@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 289/289 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 298/298 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (62, 140, 37, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (62, 149, 37, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 289; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (16) — total backend, 298; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (128); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -440,6 +440,19 @@ mensaje propio fijo en vez de reenviar \texttt{ex.getMessage()} —si alguien lo
 error, podría filtrar detalles internos de Spring Security en la respuesta—. El de
 \texttt{report-service} es más simple (\texttt{ForbiddenException} → 403, cualquier otra cosa →
 500); sus 2 pruebas nuevas lo cubren por completo.
+
+\texttt{TicketRepositoryAdapter} era, según el reporte JaCoCo, la clase peor cubierta de todo el
+módulo (29.2\%): no tenía ninguna prueba unitaria propia, solo se ejercitaba de forma indirecta
+a través de \texttt{TicketRepositoryIntegrationTest} (Testcontainers, un CockroachDB real), que
+no corre localmente en Windows por la limitación de \emph{Docker outside of Docker} ya
+documentada en la Sección de amenazas —así que en la práctica, fuera del \emph{runner} de GitHub
+Actions, esta clase no tenía cobertura real alguna. Sus 8 pruebas nuevas cubren los ocho métodos
+del adaptador (siete consultas más \texttt{save()}), usando el \texttt{TicketMapper} real, no
+mockeado, para que un cambio accidental en el mapeo también rompa esta prueba.
+\texttt{IncidenciaRepositoryAdapter}, su equivalente para incidencias, ya tenía cinco pruebas
+pero dejaba sin cubrir \texttt{findByZone()}; su prueba nueva cierra ese último método.
+\texttt{TicketRepositoryAdapter} queda en 100\% de cobertura de línea según el propio reporte
+JaCoCo tras esta ronda.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}

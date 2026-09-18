@@ -99,6 +99,22 @@ class IncidenciaRepositoryAdapterTest {
     }
 
     @Test
+    void findByZone_mapeaCadaResultadoAlDominio() {
+        IncidenciaJpaEntity entity = IncidenciaJpaEntity.builder()
+                .id(UUID.randomUUID())
+                .zone(Zone.QUEVEDO_NORTE)
+                .createdAt(OffsetDateTime.now())
+                .correlMode("c1")
+                .build();
+        when(jpaRepository.findByZone(Zone.QUEVEDO_NORTE)).thenReturn(List.of(entity));
+
+        List<Incidencia> resultado = adapter().findByZone(Zone.QUEVEDO_NORTE);
+
+        assertThat(resultado).hasSize(1);
+        assertThat(resultado.get(0).getZone()).isEqualTo(Zone.QUEVEDO_NORTE);
+    }
+
+    @Test
     void findAll_delegaEnJpaRepositoryYMapeaLaListaCompleta() {
         when(jpaRepository.findAll()).thenReturn(List.of());
 
