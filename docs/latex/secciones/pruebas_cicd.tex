@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 123/123 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 126/126 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -30,7 +30,7 @@ mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{servic
 para los cinco servicios Java (54, 140, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
 dentro de \texttt{services/ai-service} (16) — total backend, 279; \texttt{npm test} (que invoca
-\texttt{vitest run}) dentro de \texttt{apps/web} (123); y \texttt{./gradlew
+\texttt{vitest run}) dentro de \texttt{apps/web} (126); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
@@ -406,6 +406,18 @@ muestre el mensaje de error real en vez de quedar mudo. Tampoco se probaba el bo
 alterna el campo de contraseña entre oculto y visible. Sus 4 pruebas nuevas —mockeando
 \texttt{authApi.login} con el mismo criterio que \texttt{useAuth.test.tsx}— cierran los cuatro
 huecos.
+
+\texttt{AppLayout} (\texttt{apps/web}, cabecera y navegación de toda página autenticada) ya
+tenía cuatro pruebas, pero con tres huecos reales. \texttt{CLIENTE} —el rol más común del
+sistema— nunca se probaba de forma explícita para la regla de RBAC que oculta
+\texttt{Administración}/\texttt{Reportes}: solo se cubrían "sin sesión" y \texttt{ADMIN}. El
+botón \texttt{Salir} solo se confirmaba cerrando la sesión (\texttt{isLoggedIn() === false});
+que también navegara a \texttt{/login} nunca se verificaba de punta a punta. Y, cuarta aparición
+del mismo patrón de hueco (\texttt{Badges.tsx}, Ronda 23; \texttt{ReportsPage}, Ronda 26;
+\texttt{StatusColors.kt} en móvil, Ronda 15): \texttt{ROLE\_BADGE\_COLOR} es otro mapa manual
+rol-a-color, y las pruebas existentes solo verificaban la etiqueta traducida
+(\texttt{"Administrador"}, \texttt{"Técnico"}), nunca que los tres roles tuvieran colores de
+insignia distintos entre sí. Sus 3 pruebas nuevas cierran los tres huecos.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
