@@ -90,6 +90,28 @@ describe('TicketRowActions', () => {
     expect(onChanged).toHaveBeenCalled()
   })
 
+  it('seleccionar el mismo estado que ya tiene el ticket no llama a la API', () => {
+    // El guard "if (status === ticket.status) return" nunca se ejercitaba -- sin el,
+    // reseleccionar el mismo valor en el select dispararia un PATCH redundante cada vez.
+    const spy = vi.spyOn(ticketsApi, 'updateTicketStatus')
+    render(<TicketRowActions ticket={baseTicket} currentUserId="u1" role="TECNICO" technicians={[]} onChanged={vi.fn()} />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: baseTicket.status } })
+
+    expect(spy).not.toHaveBeenCalled()
+  })
+
+  it('con rol CLIENTE (o sin rol) no se muestra ningun control de asignacion', () => {
+    // Defensa en profundidad: ConsolePage ya oculta este componente para CLIENTE, pero el
+    // componente en si nunca probaba que, si de todos modos se renderizara, no ofreciera
+    // ni "Asignarme" ni el selector de ADMIN -- las siete pruebas de arriba solo cubren
+    // TECNICO y ADMIN.
+    render(<TicketRowActions ticket={baseTicket} currentUserId="c1" role="CLIENTE" technicians={technicians} onChanged={vi.fn()} />)
+
+    expect(screen.queryByRole('button', { name: 'Asignarme' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Asignar a técnico…' })).not.toBeInTheDocument()
+  })
+
   it('ADMIN sin tecnicos en la zona del ticket ve un aviso en vez de un selector vacio', () => {
     render(
       <TicketRowActions
