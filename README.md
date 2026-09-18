@@ -143,7 +143,7 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
   compila las 65 páginas sin errores.
 - **Documento vivo vs. documento congelado (Entregable 26 de la guía de cierre).** `docs/latex/`
   de arriba es el documento vivo: se sigue editando y su PDF se recompila en cada `push` a `main`
-  (tanto en CI como en el [Release `mobile-release`](../../releases/tag/mobile-release)), así que
+  (tanto en CI como en el [Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)), así que
   descargarlo hoy y mañana puede dar bytes distintos sin ningún aviso de cuál commit corresponde a
   cuál. [`docs/entregas-congeladas/entrega4/`](docs/entregas-congeladas/entrega4/) es la instantánea
   congelada de esta entrega: un PDF fechado y atado a un commit exacto (`50024c4`, 2026-09-15) que
@@ -182,9 +182,11 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
 - Evidencia de tolerancia a fallos: `docs/evidencias/`
 - Paquete móvil firmado, listo para instalar: [`release/apk/`](release/apk/) — instrucciones de
   instalación y verificación en [`apps/mobile/README.md`](apps/mobile/README.md#paquete-instalable-releaseapk)
-- Entrega estable publicada (instalable firmado + manuscrito compilado, URL permanente que no
-  expira, actualizada en cada envío a `main` por el trabajo `build-mobile-apk`):
-  [GitHub Release `mobile-release`](../../releases/tag/mobile-release)
+- Entrega estable publicada (instalable firmado + manuscrito compilado, bajo una etiqueta de
+  versión real que el trabajo `build-mobile-apk` mueve al commit actual en cada envío a `main`
+  que pasa los siete jobs de verificación previos — no un alias fijo, la etiqueta de git
+  apunta siempre al commit exacto de los binarios adjuntos):
+  [GitHub Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)
 - Capturas reales de la web y la app móvil: [`release/screenshots/`](release/screenshots/)
 - Declaración de uso de IA: [`ai-usage-declaration.md`](ai-usage-declaration.md)
 - Actas de reunión (reconstruidas a partir del chat real de coordinación del equipo, con fecha,

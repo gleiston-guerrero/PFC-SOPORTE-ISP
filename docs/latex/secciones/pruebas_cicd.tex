@@ -524,31 +524,34 @@ en vez de forzar una condición más débil o más fuerte que la que el sistema 
 
 \subsection{Pipeline de CI/CD}
 
-El archivo \texttt{.github/workflows/ci-cd.yml} define siete \emph{jobs} en un grafo dirigido
+El archivo \texttt{.github/workflows/ci-cd.yml} define diez \emph{jobs} en un grafo dirigido
 acíclico, siguiendo la cultura DevOps de que ningún cambio llegue a un artefacto publicado sin
 pasar por los mismos controles~\cite{kim2021devops,humble2010continuous}:
 
 \begin{table}[H]
 \centering
 \small
-\caption{Los siete jobs del pipeline.}
+\caption{Los diez jobs del pipeline.}
 \label{tab:cicd}
 \begin{tabular}{@{}p{0.6cm}p{2.6cm}p{9.5cm}@{}}
 \toprule
 \textbf{\#} & \textbf{Job} & \textbf{Qué hace} \\
 \midrule
 1 & \texttt{lint} & ESLint (web) + Android Lint (móvil) \\
-2 & \texttt{test-backend} & Los cinco servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
-3 & \texttt{test-web} & Vitest, incluido el contrato Pact del consumidor \\
-4 & \texttt{test-mobile} & Unitarias JVM + instrumentadas en un emulador Android headless real \\
-5 & \texttt{build-images} & Construye y publica las ocho imágenes Docker en GHCR (solo en \emph{push}) \\
-6 & \texttt{build-mobile-apk} & Compila el APK de depuración y lo publica como artefacto \\
-7 & \texttt{integration} & Levanta el \emph{stack} completo y corre Pact proveedor + Playwright contra el backend real \\
+2 & \texttt{validate-openapi} & Spectral valida \texttt{docs/api/openapi.yaml} contra la regla propia \texttt{response-schema-required} \\
+3 & \texttt{test-backend} & Los cinco servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
+4 & \texttt{test-web} & Vitest, incluido el contrato Pact del consumidor \\
+5 & \texttt{test-mobile} & Unitarias JVM + instrumentadas en un emulador Android headless real \\
+6 & \texttt{build-images} & Construye y publica las ocho imágenes Docker en GHCR (solo en \emph{push}) \\
+7 & \texttt{build-mobile-apk} & Compila, firma y publica el APK de \emph{release} junto al manuscrito, bajo una etiqueta de versión que se mueve al commit actual en cada publicación \\
+8 & \texttt{integration} & Levanta el \emph{stack} completo y corre Pact proveedor + Playwright contra el backend real \\
+9 & \texttt{compile-latex} & Recompila el manuscrito y falla ante referencias/citas indefinidas o etiquetas duplicadas \\
+10 & \texttt{verify-checksums} & Verifica los tres manifiestos SHA256SUMS versionados contra los datos crudos \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-Los \emph{jobs} 5 y 6 declaran \texttt{needs} sobre los \emph{jobs} de prueba correspondientes:
+Los \emph{jobs} 6 y 7 declaran \texttt{needs} sobre los \emph{jobs} de prueba correspondientes:
 GitHub Actions no los ejecuta hasta que sus dependencias terminen en verde. Esto no siempre fue
 así de completo: en una revisión externa del pipeline se encontró que \texttt{build-images} solo
 dependía de \texttt{test-backend} y \texttt{test-web}, así que publicaba imágenes en GHCR aunque
@@ -559,9 +562,27 @@ prueba contra el \emph{stack} real y no contra \emph{mocks} -- corría en \emph{
 \texttt{build-images} en vez de antes, así que una imagen podía publicarse aunque la integración
 real fallara. Se agregó también a \texttt{needs}, sin crear una dependencia circular porque
 \texttt{integration} construye sus propias imágenes en local (\texttt{docker compose up
---build}), no depende de las que publica GHCR. La declaración final es
-\texttt{needs: [lint, test-backend, test-web, test-mobile, integration]}, para que ningún
-artefacto se publique sin que los cinco jobs de verificación pasen primero.
+--build}), no depende de las que publica GHCR. La declaración final de \texttt{build-images} es
+\texttt{needs: [lint, test-backend, test-web, test-mobile, integration]}.
+
+Una tercera revisión, esta vez sobre \texttt{build-mobile-apk} —el \emph{job} que firma el APK y
+publica el \emph{release} de la entrega—, encontró la misma clase de hueco: su declaración
+original era \texttt{needs: [test-mobile, compile-latex]} únicamente, así que el instalable
+firmado y el manuscrito se publicaban aunque \texttt{lint}, \texttt{validate-openapi} o la suite
+completa de \texttt{test-backend}/\texttt{test-web}/\texttt{integration} estuvieran en rojo. Se
+corrigió a \texttt{needs: [lint, validate-openapi, test-backend, test-web, test-mobile,
+integration, compile-latex]}, para que tampoco este artefacto se publique sin que los siete jobs
+de verificación pasen primero.
+
+Un segundo defecto de \texttt{build-mobile-apk}, independiente del anterior: la etiqueta bajo la
+que se publicaba (\texttt{mobile-release}) no era una etiqueta de \emph{versión} en ningún
+sentido real. \texttt{softprops/action-gh-release} reutiliza el \emph{ref} de git de un tag ya
+existente en vez de moverlo al commit actual, así que aunque los binarios adjuntos se
+reconstruían en cada \emph{push} a \texttt{main}, el tag de git seguía apuntando al commit donde
+se creó por primera vez —etiqueta y contenido publicado dejaban de corresponder silenciosamente.
+Se agregó un paso explícito (\texttt{git tag -f ... \&\& git push --force}) que mueve la etiqueta
+\texttt{v1.0-entrega-final} al commit actual \emph{antes} de publicar, y se renombró la etiqueta
+en consecuencia: ahora es una versión real, no un alias fijo que solo indica "la más reciente".
 
 \subsection{Depuración real del job \texttt{integration}}
 \label{sec:cicd-depuracion}
