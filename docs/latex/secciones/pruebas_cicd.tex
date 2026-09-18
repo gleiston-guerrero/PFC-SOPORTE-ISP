@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 275/275 backend (5 servicios Java + Node + Python), 94/94 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 94/94 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (54, 136, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (54, 140, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 275; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (16) — total backend, 279; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (94); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -293,6 +293,25 @@ formal, por ejemplo antes de que \texttt{ai-service} lo clasifique) nunca se eje
 este segundo caso, quitar el chequeo de nulidad del \texttt{\&\&} habría tumbado con un
 \texttt{NullPointerException} el cierre de cualquier ticket sin SLA asignado, sin que ninguna
 prueba lo notara. Sus 2 pruebas nuevas cierran ambas ramas.
+
+Tres huecos más, encontrados leyendo línea a línea el reporte HTML de JaCoCo (no solo el
+porcentaje agregado por clase). \texttt{UpdateTicketStatusHandler} quedaba en 95.1\% incluso
+después de la ronda anterior: la única línea marcada parcial era el \texttt{orElseThrow} del
+ticket inexistente —ninguna prueba llamaba al manejador con un \texttt{id} que el repositorio no
+encontrara. Su prueba nueva cierra esa última línea.
+\texttt{TicketClassificationListener} —el lado receptor de la Saga por coreografía, que aplica
+la clasificación de \texttt{ai-service} a un ticket— tenía tres pruebas, pero ninguna ejercitaba
+\texttt{parseEnumOrNull()} más allá del caso feliz: ni un valor de categoría desconocido (el
+escenario que el propio \emph{javadoc} del evento anticipa: \emph{"ai-service y ticket-service
+pueden desincronizar su vocabulario"}), ni un payload que sencillamente no trae categoría ni
+prioridad. Sus 2 pruebas nuevas confirman que ambos casos se ignoran en silencio —la categoría
+queda \texttt{null}, el ticket se guarda igual— sin tumbar el \emph{listener}.
+\texttt{TelemetryGrpcClientAdapter} ya tenía una prueba de regresión de un bug real (el plazo de
+gRPC fijado una sola vez en el constructor en vez de por llamada), pero nunca ejercitaba su
+propio bloque \texttt{catch} —el comportamiento \emph{fail-open} exigido por el ADR-0004: si
+\texttt{telemetry-service} está caído, se trata como "sin evidencia", nunca se propaga la
+excepción. Su prueba nueva apunta el adaptador a un puerto sin ningún servidor escuchando y
+confirma que devuelve \texttt{false} en vez de lanzar.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}

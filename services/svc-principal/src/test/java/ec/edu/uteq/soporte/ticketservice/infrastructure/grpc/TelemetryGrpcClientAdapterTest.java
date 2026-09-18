@@ -66,6 +66,20 @@ class TelemetryGrpcClientAdapterTest {
         assertThat(adapter.hayEvidenciaDeAveria(Zone.QUEVEDO_CENTRO, 900)).isTrue();
     }
 
+    @Test
+    void conElCanalCaidoDevuelveFalseEnVezDePropagarLaExcepcion() throws Exception {
+        // El bloque catch (fail-open, ver ADR-0004) nunca se ejercitaba: ninguna prueba
+        // apuntaba el adaptador a un puerto sin servidor escuchando. Sin este caso, un cambio
+        // que quitara el catch pasaria todas las pruebas existentes y tumbaria
+        // ZonaVentanaTelemetriaStrategy en produccion apenas telemetry-service estuviera caido.
+        int puertoSinServidor = puertoLibre();
+        adapter = new TelemetryGrpcClientAdapter("localhost", puertoSinServidor);
+
+        boolean resultado = adapter.hayEvidenciaDeAveria(Zone.QUEVEDO_NORTE, 900);
+
+        assertThat(resultado).isFalse();
+    }
+
     private static int puertoLibre() throws IOException {
         try (ServerSocket socket = new ServerSocket(0)) {
             return socket.getLocalPort();

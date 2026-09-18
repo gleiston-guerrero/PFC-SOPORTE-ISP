@@ -86,6 +86,68 @@ class TicketClassificationListenerTest {
     }
 
     @Test
+    void unrecognizedCategoryIsIgnoredButValidPriorityStillApplies() {
+        // ai-service y ticket-service pueden desincronizar su vocabulario de categorias (ver
+        // el javadoc del propio evento) -- un valor que no matchea ningun Category no debe
+        // tumbar el listener, solo dejar esa categoria en null.
+        TicketClassificationListener listener = new TicketClassificationListener(ticketRepository, objectMapper, slaPolicy);
+        UUID id = UUID.randomUUID();
+        OffsetDateTime createdAt = OffsetDateTime.now().minusMinutes(5);
+        Ticket ticket = Ticket.builder()
+                .zone(Zone.QUEVEDO_NORTE)
+                .id(id)
+                .clientId(UUID.randomUUID())
+                .status(TicketStatus.NUEVO)
+                .createdAt(createdAt)
+                .slaDeadline(createdAt.plusHours(24))
+                .build();
+
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(ticket));
+        ArgumentCaptor<Ticket> captor = ArgumentCaptor.forClass(Ticket.class);
+        when(ticketRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        String payload = """
+                {"ticketId":"%s","zone":"QUEVEDO_NORTE","category":"CATEGORIA_INVENTADA","priority":"ALTO"}
+                """.formatted(id).strip();
+
+        listener.onTicketClassified(payload); // no debe lanzar
+
+        Ticket saved = captor.getValue();
+        assertThat(saved.getCategory()).isNull();
+        assertThat(saved.getPriority()).isEqualTo(Priority.ALTO);
+    }
+
+    @Test
+    void missingCategoryAndPriorityLeavesBothNullButStillSavesTheTicket() {
+        // La rama value == null || isBlank() de parseEnumOrNull nunca se ejercitaba: los otros
+        // tres payloads del archivo siempre mandan category/priority, validos o invalidos,
+        // pero nunca ausentes.
+        TicketClassificationListener listener = new TicketClassificationListener(ticketRepository, objectMapper, slaPolicy);
+        UUID id = UUID.randomUUID();
+        Ticket ticket = Ticket.builder()
+                .zone(Zone.QUEVEDO_SUR)
+                .id(id)
+                .clientId(UUID.randomUUID())
+                .status(TicketStatus.NUEVO)
+                .createdAt(OffsetDateTime.now())
+                .build();
+
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(ticket));
+        ArgumentCaptor<Ticket> captor = ArgumentCaptor.forClass(Ticket.class);
+        when(ticketRepository.save(captor.capture())).thenAnswer(inv -> inv.getArgument(0));
+
+        String payload = """
+                {"ticketId":"%s","zone":"QUEVEDO_SUR"}
+                """.formatted(id).strip();
+
+        listener.onTicketClassified(payload);
+
+        Ticket saved = captor.getValue();
+        assertThat(saved.getCategory()).isNull();
+        assertThat(saved.getPriority()).isNull();
+    }
+
+    @Test
     void malformedPayloadIsIgnoredWithoutThrowing() {
         TicketClassificationListener listener = new TicketClassificationListener(ticketRepository, objectMapper, slaPolicy);
 

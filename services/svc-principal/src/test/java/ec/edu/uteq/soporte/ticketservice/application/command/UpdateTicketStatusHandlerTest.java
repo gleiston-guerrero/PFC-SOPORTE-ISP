@@ -2,6 +2,7 @@ package ec.edu.uteq.soporte.ticketservice.application.command;
 
 import ec.edu.uteq.soporte.ticketservice.application.ForbiddenException;
 import ec.edu.uteq.soporte.ticketservice.application.TicketAuthorization;
+import ec.edu.uteq.soporte.ticketservice.application.TicketNotFoundException;
 import ec.edu.uteq.soporte.ticketservice.application.TicketWriter;
 import ec.edu.uteq.soporte.ticketservice.domain.EventPublisher;
 import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
@@ -191,6 +192,19 @@ class UpdateTicketStatusHandlerTest {
                 new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "ADMIN", null, null, null, null));
 
         assertThat(result.isSlaBreached()).isFalse();
+    }
+
+    @Test
+    void updateStatus_ticketNotFound_throws() {
+        // Unica linea que el reporte JaCoCo del modulo seguia marcando parcial
+        // (orElseThrow del find) despues de la Ronda 18 -- el resto del manejador ya
+        // quedo en 100%.
+        UUID id = UUID.randomUUID();
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> handler().handle(
+                new UpdateTicketStatusCommand(id, TicketStatus.RESUELTO, "ADMIN", null, null, null, null)))
+                .isInstanceOf(TicketNotFoundException.class);
     }
 
     private Ticket ticketIn(Zone zone, UUID id) {
