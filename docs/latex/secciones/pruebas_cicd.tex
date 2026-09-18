@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 298/298 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 302/302 backend (5 servicios Java + Node + Python), 128/128 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -28,8 +28,8 @@ Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondient
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
 para los cinco servicios Java (62, 149, 37, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
-invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 298; \texttt{npm test} (que invoca
+invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (15); \texttt{pytest}
+dentro de \texttt{services/ai-service} (16) — total backend, 302; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (128); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -453,6 +453,17 @@ mockeado, para que un cambio accidental en el mapeo también rompa esta prueba.
 pero dejaba sin cubrir \texttt{findByZone()}; su prueba nueva cierra ese último método.
 \texttt{TicketRepositoryAdapter} queda en 100\% de cobertura de línea según el propio reporte
 JaCoCo tras esta ronda.
+
+\texttt{logger.js} (\texttt{notification-service}) no tenía ninguna prueba: es la
+implementación propia del logging estructurado en JSON exigido por la Práctica Experimental U5
+(ítem 2a, \emph{"logging estructurado (JSON) en todos los microservicios"}) —deliberadamente sin
+dependencia nueva (nada de \texttt{winston}/\texttt{pino}), así que ninguna librería externa ya
+probada por terceros garantiza que la línea impresa sea JSON válido con los campos correctos; esa
+garantía solo la puede dar una prueba propia. Sus 4 pruebas nuevas confirman que
+\texttt{info()}/\texttt{error()} escriben en la salida correcta (\texttt{console.log} vs.
+\texttt{console.error}, la única rama real del archivo), que los campos \texttt{extra} se
+mezclan en la línea, y que sin ellos no queda un \texttt{"undefined"} colado en el JSON
+resultante.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
