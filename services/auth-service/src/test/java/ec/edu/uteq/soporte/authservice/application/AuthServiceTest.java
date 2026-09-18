@@ -11,6 +11,8 @@ import ec.edu.uteq.soporte.authservice.presentation.dto.AuthResponse;
 import ec.edu.uteq.soporte.authservice.presentation.dto.CreateUserRequest;
 import ec.edu.uteq.soporte.authservice.presentation.dto.RegisterRequest;
 import ec.edu.uteq.soporte.authservice.presentation.dto.UserResponse;
+import ec.edu.uteq.soporte.authservice.presentation.dto.ValidateResponse;
+import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +21,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.util.Date;
 
 import java.time.Duration;
 import java.time.OffsetDateTime;
@@ -242,6 +246,117 @@ class AuthServiceTest {
 
         assertThat(otherActiveToken.isRevoked()).isTrue();
         verify(refreshTokenRepository).saveAll(List.of(otherActiveToken));
+    }
+
+    @Test
+    void registerRejectsAnEmailThatAlreadyExists() {
+        // createUser() es compartida por register/createUserAsAdmin; esta prueba solo cubria
+        // el camino de createUserAsAdmin (zona invalida) hasta ahora, nunca el chequeo real de
+        // correo duplicado que hace la funcion de creacion en si.
+        when(userRepository.existsByEmail("existente@test.com")).thenReturn(true);
+
+        assertThatThrownBy(() -> authService.register(
+                new RegisterRequest("existente@test.com", "Passw0rd!", "Alguien")))
+                .isInstanceOf(DuplicateEmailException.class);
+    }
+
+    @Test
+    void loginFailsWhenTheEmailDoesNotExist() {
+        // Distinto del caso "contrasena incorrecta": aqui el usuario ni siquiera existe. Debe
+        // fallar con el mismo InvalidCredentialsException generico -- nunca un mensaje que
+        // revele si el correo esta o no registrado.
+        when(userRepository.findByEmail("nadie@test.com")).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.login("nadie@test.com", "cualquiera"))
+                .isInstanceOf(InvalidCredentialsException.class);
+    }
+
+    @Test
+    void refreshWithAnUnknownTokenHashFails() {
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.refresh("token-que-nunca-se-emitio"))
+                .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void refreshWithAnExpiredButNotRevokedTokenFails() {
+        RefreshToken vencido = RefreshToken.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.randomUUID())
+                .tokenHash("hash-vencido")
+                .issuedAt(OffsetDateTime.now().minusDays(10))
+                .expiresAt(OffsetDateTime.now().minusMinutes(1))
+                .revoked(false)
+                .build();
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(vencido));
+
+        assertThatThrownBy(() -> authService.refresh("token-vencido"))
+                .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void logoutRevokesAnActiveRefreshToken() {
+        RefreshToken activo = RefreshToken.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.randomUUID())
+                .tokenHash("hash-activo")
+                .issuedAt(OffsetDateTime.now())
+                .expiresAt(OffsetDateTime.now().plusDays(7))
+                .revoked(false)
+                .build();
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(activo));
+
+        authService.logout("token-activo");
+
+        assertThat(activo.isRevoked()).isTrue();
+        verify(refreshTokenRepository).save(activo);
+    }
+
+    @Test
+    void logoutOnAnAlreadyRevokedTokenIsIdempotentAndDoesNotSaveAgain() {
+        // Cerrar sesion dos veces (o cerrar sesion despues de un refresh que ya lo revoco) no
+        // debe volver a escribir en la base -- solo evitar el trabajo redundante, no fallar.
+        RefreshToken yaRevocado = RefreshToken.builder()
+                .id(UUID.randomUUID())
+                .userId(UUID.randomUUID())
+                .tokenHash("hash-ya-revocado")
+                .issuedAt(OffsetDateTime.now().minusDays(1))
+                .expiresAt(OffsetDateTime.now().plusDays(6))
+                .revoked(true)
+                .build();
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.of(yaRevocado));
+
+        authService.logout("token-ya-revocado");
+
+        verify(refreshTokenRepository, org.mockito.Mockito.never()).save(any(RefreshToken.class));
+    }
+
+    @Test
+    void logoutWithAnUnknownTokenHashFails() {
+        when(refreshTokenRepository.findByTokenHash(anyString())).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> authService.logout("token-desconocido"))
+                .isInstanceOf(InvalidTokenException.class);
+    }
+
+    @Test
+    void validateParsesClaimsIntoValidateResponse() {
+        Claims claims = org.mockito.Mockito.mock(Claims.class);
+        when(claims.getSubject()).thenReturn("user-id-123");
+        when(claims.get("email", String.class)).thenReturn("cliente@test.com");
+        when(claims.get("role", String.class)).thenReturn("TECNICO");
+        when(claims.get("zone", String.class)).thenReturn("QUEVEDO_NORTE");
+        when(claims.get("permissions", List.class)).thenReturn(List.of("ticket:read:zone"));
+        when(claims.getExpiration()).thenReturn(Date.from(OffsetDateTime.now().plusMinutes(15).toInstant()));
+        when(jwtService.parseAndValidate("Bearer abc.def.ghi")).thenReturn(claims);
+
+        ValidateResponse response = authService.validate("Bearer abc.def.ghi");
+
+        assertThat(response.userId()).isEqualTo("user-id-123");
+        assertThat(response.role()).isEqualTo("TECNICO");
+        assertThat(response.zone()).isEqualTo("QUEVEDO_NORTE");
+        assertThat(response.permissions()).containsExactly("ticket:read:zone");
     }
 
     private void stubTokenIssuance() {
