@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 239/239 backend (5 servicios Java + Node + Python), 94/94 web, 25/25 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 250/250 backend (5 servicios Java + Node + Python), 94/94 web, 25/25 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (38, 123, 35, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (42, 123, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 239; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (16) — total backend, 250; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (94); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (25). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -216,6 +216,24 @@ iniciada en el cliente, envolviendo la llamada en \texttt{runCatching} y exigien
 nuevas documentan, entre otras cosas, que una respuesta HTTP 200 con \texttt{data} nulo —un
 caso real y no solo teórico, dado que \texttt{ApiResponse.data} es nullable en el contrato—
 falla en vez de guardar tokens vacíos y reportar una sesión iniciada que en realidad no existe.
+
+Dos piezas más, ambas en el extremo de PE-U1 que alimenta la correlación de incidencias.
+\texttt{TelemetryStore} (\texttt{telemetry-service}) —el \emph{buffer} en memoria del que lee
+\texttt{ZonaVentanaTelemetriaStrategy} (c2, ver Ronda 12 más arriba) para decidir si hay
+evidencia real de avería antes de agrupar tickets— tampoco tenía prueba propia: las pruebas de
+c2 mockean \texttt{TelemetryQueryPort} por completo y nunca ejercitan este buffer real. Sus 7
+pruebas nuevas confirman, entre otras cosas, la garantía que el propio comentario de la clase
+remarca —los eventos se devuelven ordenados por \emph{timestamp} de Lamport (orden causal), no
+por orden de llegada— registrando eventos deliberadamente fuera de ese orden para que una
+implementación que solo devolviera la lista tal cual, o la ordenara por hora de recepción, no
+pasara la prueba; también confirman que \texttt{purgar()} descarta eventos vencidos en todas las
+zonas sin tocar los vigentes. \texttt{PermissionCatalog} (\texttt{auth-service}) —el mapa
+rol-a-permisos que se embebe como \emph{claim} en el \emph{access token} para que
+\texttt{ticket-service}/\texttt{api-gateway} autoricen sin volver a consultar
+\texttt{auth-service} en cada petición— tampoco tenía prueba; un permiso mal listado aquí se
+propagaría en silencio a cada token emitido. Sus 4 pruebas nuevas incluyen una que compara los
+tres roles entre sí, no solo contra el valor esperado, para atrapar el caso de que dos roles
+compartieran por error la misma entrada del mapa.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
