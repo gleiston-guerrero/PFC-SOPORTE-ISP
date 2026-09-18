@@ -2,6 +2,7 @@ package ec.edu.uteq.soporte.ticketservice.application.command;
 
 import ec.edu.uteq.soporte.ticketservice.application.ForbiddenException;
 import ec.edu.uteq.soporte.ticketservice.application.TicketAuthorization;
+import ec.edu.uteq.soporte.ticketservice.application.TicketNotFoundException;
 import ec.edu.uteq.soporte.ticketservice.application.TicketWriter;
 import ec.edu.uteq.soporte.ticketservice.domain.EventPublisher;
 import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
@@ -69,6 +70,56 @@ class AssignTechnicianHandlerTest {
         ArgumentCaptor<String> topicCaptor = ArgumentCaptor.forClass(String.class);
         verify(eventPublisher).publish(topicCaptor.capture(), any(), any());
         assertThat(topicCaptor.getValue()).isEqualTo("ticket.assigned");
+    }
+
+    @Test
+    void assignTechnician_ticketNotFound_throws() {
+        UUID id = UUID.randomUUID();
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.empty());
+
+        assertThatThrownBy(() -> handler().handle(
+                new AssignTechnicianCommand(id, UUID.randomUUID(), "ADMIN", null)))
+                .isInstanceOf(TicketNotFoundException.class);
+    }
+
+    @Test
+    void assignTechnician_byCliente_isForbidden() {
+        // assertCanManage: CLIENTE nunca puede asignar tecnico, sin importar el ticket.
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_NORTE, id);
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> handler().handle(
+                new AssignTechnicianCommand(id, UUID.randomUUID(), "CLIENTE", null)))
+                .isInstanceOf(ForbiddenException.class);
+    }
+
+    @Test
+    void assignTechnician_byTecnicoInOwnZone_isAllowed() {
+        // La unica prueba positiva existente era con ADMIN; el camino permitido de TECNICO
+        // nunca se ejercitaba, solo el prohibido (otra zona).
+        UUID id = UUID.randomUUID();
+        Zone zone = Zone.QUEVEDO_SUR;
+        Ticket existing = ticketIn(zone, id);
+        UUID technicianId = UUID.randomUUID();
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+        when(ticketWriter.saveWithRetry(any(Ticket.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        Ticket result = handler().handle(new AssignTechnicianCommand(id, technicianId, "TECNICO", zone));
+
+        assertThat(result.getTechnicianId()).isEqualTo(technicianId);
+    }
+
+    @Test
+    void assignTechnician_byTecnicoWithNoZone_isForbidden() {
+        // authZone == null se trata fail-closed, no como "todas las zonas".
+        UUID id = UUID.randomUUID();
+        Ticket existing = ticketIn(Zone.QUEVEDO_NORTE, id);
+        when(ticketRepository.findByTicketId(id)).thenReturn(Optional.of(existing));
+
+        assertThatThrownBy(() -> handler().handle(
+                new AssignTechnicianCommand(id, UUID.randomUUID(), "TECNICO", null)))
+                .isInstanceOf(ForbiddenException.class);
     }
 
     private Ticket ticketIn(Zone zone, UUID id) {
