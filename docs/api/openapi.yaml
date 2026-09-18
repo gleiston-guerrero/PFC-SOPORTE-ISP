@@ -16,25 +16,38 @@ info:
     name: Equipo ACC — Aplicaciones Distribuidas (ISR-701), UTEQ
 
 servers:
-  - url: http://localhost:8000/api/v1/auth
+  # Sin "servers:" a nivel de path, un cliente generado resuelve toda ruta contra servers[0]
+  # (auth) -- hallazgo de una revision externa. Cada bloque paths./ruta de abajo declara su
+  # propio "servers:" (ancla + alias de estos 10) para que apunte solo a su servicio real.
+  - &auth_gateway
+    url: http://localhost:8000/api/v1/auth
     description: auth-service, a través del API Gateway (Entrega 4, vía real)
-  - url: http://localhost:8000/api/v1/tickets
+  - &tickets_gateway
+    url: http://localhost:8000/api/v1/tickets
     description: ticket-service, a través del API Gateway (Entrega 4, vía real)
-  - url: http://localhost:8000/api/v1/notifications
+  - &notifications_gateway
+    url: http://localhost:8000/api/v1/notifications
     description: notification-service, a través del API Gateway (Entrega 4, vía real)
-  - url: http://localhost:8000/api/v1/ai
+  - &ai_gateway
+    url: http://localhost:8000/api/v1/ai
     description: ai-service, a través del API Gateway (Entrega 4, vía real)
-  - url: http://localhost:8000/api/v1/reports
+  - &reports_gateway
+    url: http://localhost:8000/api/v1/reports
     description: report-service, a través del API Gateway (Entrega 4, vía real)
-  - url: http://localhost:8001/api/v1/auth
+  - &auth_direct
+    url: http://localhost:8001/api/v1/auth
     description: auth-service, puerto directo (solo depuración local, Entrega 2)
-  - url: http://localhost:8002/api/v1/tickets
+  - &tickets_direct
+    url: http://localhost:8002/api/v1/tickets
     description: ticket-service, puerto directo (solo depuración local, Entrega 2)
-  - url: http://localhost:8003/api/v1/notifications
+  - &notifications_direct
+    url: http://localhost:8003/api/v1/notifications
     description: notification-service, puerto directo (solo depuración local, Entrega 2)
-  - url: http://localhost:8004/api/v1/ai
+  - &ai_direct
+    url: http://localhost:8004/api/v1/ai
     description: ai-service, puerto directo (solo depuración local, Entrega 2)
-  - url: http://localhost:8005/api/v1/reports
+  - &reports_direct
+    url: http://localhost:8005/api/v1/reports
     description: report-service, puerto directo (solo depuración local, Entrega 2)
 
 components:
@@ -127,6 +140,31 @@ components:
         refreshToken:
           type: string
         accessTokenExpiresAt:
+          type: string
+          format: date-time
+
+    ValidateResponse:
+      type: object
+      description: >
+        Devuelto por GET /validate y consumido por AuthGatewayFilter de los demás servicios
+        para poblar authUserId/authRole/authZone.
+      properties:
+        userId:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [CLIENTE, TECNICO, ADMIN]
+        zone:
+          type: string
+          nullable: true
+        permissions:
+          type: array
+          items:
+            type: string
+        expiresAt:
           type: string
           format: date-time
 
@@ -231,6 +269,30 @@ components:
             type: integer
             format: int64
 
+    IncidenciaResponse:
+      type: object
+      description: >
+        Agrupamiento de tickets correlacionados (CORREL, ver docs/adr/0008-correl-incidencias.md).
+        Consumidor principal: experimentos/analizar_correlacion.py.
+      properties:
+        incidenciaId:
+          type: string
+          format: uuid
+        zone:
+          type: string
+          enum: [QUEVEDO_CENTRO, QUEVEDO_NORTE, QUEVEDO_SUR]
+        createdAt:
+          type: string
+          format: date-time
+        correlMode:
+          type: string
+          enum: [c0, c1, c2]
+        ticketIds:
+          type: array
+          items:
+            type: string
+            format: uuid
+
     TicketSummaryResponse:
       type: object
       description: Fila del modelo de lectura CQRS (report-service), no el mismo objeto que Ticket.
@@ -278,6 +340,7 @@ components:
 
 paths:
   /register:
+    servers: [*auth_gateway, *auth_direct]
     post:
       tags: [auth-service]
       summary: Registro público (fuerza rol CLIENTE)
@@ -297,9 +360,15 @@ paths:
           description: Usuario creado
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ApiResponse" }
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/UserResponse" }
 
   /login:
+    servers: [*auth_gateway, *auth_direct]
     post:
       tags: [auth-service]
       summary: Login, devuelve access token + refresh token
@@ -318,10 +387,16 @@ paths:
           description: accessToken/refreshToken emitidos
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ApiResponse" }
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/AuthResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   /refresh:
+    servers: [*auth_gateway, *auth_direct]
     post:
       tags: [auth-service]
       summary: Rota el refresh token (detecta reuso y revoca en cascada)
@@ -348,6 +423,7 @@ paths:
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   /logout:
+    servers: [*auth_gateway, *auth_direct]
     post:
       tags: [auth-service]
       summary: Revoca un refresh token
@@ -365,6 +441,7 @@ paths:
               schema: { $ref: "#/components/schemas/ApiResponse" }
 
   /validate:
+    servers: [*auth_gateway, *auth_direct]
     get:
       tags: [auth-service]
       summary: Valida un access token (consumido por AuthGatewayFilter de otros servicios)
@@ -374,10 +451,16 @@ paths:
           description: userId/role/zone del token
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ApiResponse" }
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/ValidateResponse" }
         "401": { $ref: "#/components/responses/Unauthorized" }
 
   /admin/users:
+    servers: [*auth_gateway, *auth_direct]
     post:
       tags: [auth-service]
       summary: Crear cuenta CLIENTE/TECNICO/ADMIN (solo ADMIN)
@@ -429,6 +512,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
 
   /:
+    servers: [*tickets_gateway, *tickets_direct]
     post:
       tags: [ticket-service]
       summary: Crear ticket (CLIENTE/ADMIN)
@@ -443,7 +527,12 @@ paths:
           description: Ticket creado
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ApiResponse" }
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Ticket" }
         "403": { $ref: "#/components/responses/Forbidden" }
     get:
       tags: [ticket-service]
@@ -471,6 +560,7 @@ paths:
                         items: { $ref: "#/components/schemas/Ticket" }
 
   /{id}:
+    servers: [*tickets_gateway, *tickets_direct]
     get:
       tags: [ticket-service]
       summary: Detalle de un ticket por id
@@ -485,11 +575,17 @@ paths:
           description: Ticket encontrado
           content:
             application/json:
-              schema: { $ref: "#/components/schemas/ApiResponse" }
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data: { $ref: "#/components/schemas/Ticket" }
         "403": { $ref: "#/components/responses/Forbidden" }
         "404": { description: Ticket no encontrado }
 
   /{id}/status:
+    servers: [*tickets_gateway, *tickets_direct]
     patch:
       tags: [ticket-service]
       summary: Cambiar estado (TECNICO en su zona / ADMIN)
@@ -540,6 +636,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
 
   /{id}/assign:
+    servers: [*tickets_gateway, *tickets_direct]
     post:
       tags: [ticket-service]
       summary: Asignar técnico (TECNICO en su zona / ADMIN)
@@ -566,7 +663,32 @@ paths:
                       data: { $ref: "#/components/schemas/Ticket" }
         "403": { $ref: "#/components/responses/Forbidden" }
 
+  /incidencias:
+    servers: [*tickets_gateway, *tickets_direct]
+    get:
+      tags: [ticket-service]
+      summary: Incidencias (agrupamiento CORREL de tickets correlacionados)
+      security: [{ bearerAuth: [] }]
+      parameters:
+        - name: zone
+          in: query
+          schema: { type: string, enum: [QUEVEDO_CENTRO, QUEVEDO_NORTE, QUEVEDO_SUR] }
+      responses:
+        "200":
+          description: Lista de incidencias
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items: { $ref: "#/components/schemas/IncidenciaResponse" }
+
   /notifications:
+    servers: [*notifications_gateway, *notifications_direct]
     get:
       tags: [notification-service]
       summary: Notificaciones simuladas guardadas (demo/depuración)
@@ -589,6 +711,7 @@ paths:
                         items: { $ref: "#/components/schemas/NotificationEvent" }
 
   /classifications/{ticket_id}:
+    servers: [*ai_gateway, *ai_direct]
     get:
       tags: [ai-service]
       summary: Clasificación guardada para un ticket
@@ -606,6 +729,7 @@ paths:
         "404": { description: Aún no se procesó ese ticket }
 
   /summary:
+    servers: [*reports_gateway, *reports_direct]
     get:
       tags: [report-service]
       summary: Agregados del modelo de lectura CQRS (solo ADMIN)
@@ -625,6 +749,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
 
   /tickets:
+    servers: [*reports_gateway, *reports_direct]
     get:
       tags: [report-service]
       summary: Lista filtrable del modelo de lectura (solo ADMIN)
@@ -655,6 +780,7 @@ paths:
         "403": { $ref: "#/components/responses/Forbidden" }
 
   /export.csv:
+    servers: [*reports_gateway, *reports_direct]
     get:
       tags: [report-service]
       summary: Exportación CSV del modelo de lectura (solo ADMIN)

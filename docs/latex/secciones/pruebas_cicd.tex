@@ -484,38 +484,57 @@ resultante.
 
 Antes de que exista una sola prueba de contrato hace falta el contrato en sí. El archivo
 \texttt{docs/api/openapi.yaml} (OpenAPI~3.0.3) describe, de forma verificable por herramienta y no
-solo en prosa, las diecisiete operaciones REST de los cinco microservicios: registro, login,
+solo en prosa, las dieciocho operaciones REST de los cinco microservicios: registro, login,
 refresco, logout, validación de sesión y administración de cuentas (\texttt{auth-service}, siete
-operaciones); creación, listado, detalle, cambio de estado y asignación de tickets
-(\texttt{ticket-service}, cinco); notificaciones (\texttt{notification-service}, una);
+operaciones); creación, listado, detalle, cambio de estado, asignación e incidencias de tickets
+(\texttt{ticket-service}, seis); notificaciones (\texttt{notification-service}, una);
 clasificación automática (\texttt{ai-service}, una); y los tres puntos de agregación de
-\texttt{report-service}, incluida la exportación a CSV. Cada una de las diecisiete declara su
-esquema de respuesta exitosa, los códigos de estado posibles, y el esquema de seguridad
-(\texttt{bearerAuth}, JWT) cuando aplica; se valida automáticamente en el flujo con Spectral
-(Sección~\ref{sec:validacion-contrato}), que rompe la construcción si alguna deja de cumplirlo.
+\texttt{report-service}, incluida la exportación a CSV. Cada una de las dieciocho declara un
+esquema de respuesta exitosa tipado -- ninguna se queda en la envoltura genérica
+\texttt{ApiResponse} sin decir qué va en \texttt{data} --, los códigos de estado posibles, y el
+esquema de seguridad (\texttt{bearerAuth}, JWT) cuando aplica; se valida automáticamente en el
+flujo con Spectral (Sección~\ref{sec:validacion-contrato}), que rompe la construcción si alguna
+deja de cumplirlo. Cada ruta declara además su propio \texttt{servers:} (\emph{gateway} +
+puerto directo del servicio real), en vez de heredar los diez \texttt{servers} globales sin
+distinción -- antes de esto, un cliente generado a partir del contrato habría resuelto toda ruta
+contra el primero de los diez (\texttt{auth}), sin importar a qué servicio perteneciera en
+realidad.
 
-Este archivo no es un anexo estático: es la fuente que el contrato Pact de la siguiente
-subsección referencia como forma esperada, y es lo que permite a un integrante nuevo entender la
-API completa sin leer el código de los cinco servicios. Se actualizó para esta entrega —seguía
-describiendo los puertos directos de la Entrega 2 como si fueran la única vía de acceso, sin
-mencionar el API Gateway que desde la Entrega 4 es el punto de entrada real de ambos clientes
-(Sección~\ref{sec:arquitectura-e4})— para reflejar las dos rutas reales: el \emph{gateway} en el
-puerto 8000 como camino de producción, y los puertos directos de cada servicio conservados solo
-como vía de depuración local.
+Este archivo no es un anexo estático: documenta la misma API que ejercitan las pruebas de
+contrato Pact de la siguiente subsección, y es lo que permite a un integrante nuevo entender la
+API completa sin leer el código de los cinco servicios. Dicho esto, hoy son artefactos
+independientes, no enlazados por herramienta: ningún archivo de \texttt{pacts/} ni de las
+pruebas de \texttt{apps/web} referencia \texttt{openapi.yaml}, así que mantenerlos sincronizados
+es por ahora una disciplina manual verificada en revisión, no una garantía mecánica -- se
+declara así en vez de afirmar una referencia cruzada que el repositorio no respalda. Se
+actualizó para esta entrega —seguía describiendo los puertos directos de la Entrega 2 como si
+fueran la única vía de acceso, sin mencionar el API Gateway que desde la Entrega 4 es el punto de
+entrada real de ambos clientes (Sección~\ref{sec:arquitectura-e4})— para reflejar las dos rutas
+reales: el \emph{gateway} en el puerto 8000 como camino de producción, y los puertos directos de
+cada servicio conservados solo como vía de depuración local.
 
 \subsubsection{Validación automática del contrato}
 \label{sec:validacion-contrato}
 
 Que el contrato declare un esquema no basta si nada impide que una operación nueva se añada sin
 uno: la Entrega 4 se calificó con 4 operaciones sin esquema de respuesta señaladas por el
-profesor, y al revisar las diecisiete resultaron ser once, no cuatro. Para que ese hueco no
-vuelva a pasar desapercibido, el trabajo \texttt{validate-openapi} del flujo
+profesor, y al revisar las diecisiete de entonces resultaron ser once, no cuatro. Para que ese
+hueco no vuelva a pasar desapercibido, el trabajo \texttt{validate-openapi} del flujo
 (\texttt{.github/workflows/ci-cd.yml}) corre \texttt{Spectral} sobre
-\texttt{docs/api/openapi.yaml} en cada envío y cada \emph{pull request}, con una regla propia
-declarada en \texttt{.spectral.yaml} (\texttt{response-schema-required}) que exige
-\texttt{content.application/json.schema} en toda respuesta 2xx; si una operación futura lo omite,
-la construcción falla con el nombre exacto de la operación incumplida, no con una advertencia que
-se pueda ignorar.
+\texttt{docs/api/openapi.yaml} en cada envío y cada \emph{pull request}, con dos reglas propias
+declaradas en \texttt{.spectral.yaml}: \texttt{response-schema-required} exige que toda
+respuesta 2xx declare al menos un tipo de contenido, y \texttt{response-content-schema-required}
+exige que ese tipo de contenido tenga un \texttt{schema} no vacío -- no solo
+\texttt{application/json}, para no repetir el mismo hueco en \texttt{text/csv} u otro tipo que
+se agregue después. Una revisión externa mutó el contrato dos veces para verificar que la regla
+anterior (una sola, \texttt{content: truthy}) en realidad no protegía nada: quitar \texttt{content}
+de una operación sí rompía la construcción, pero cambiarlo por \texttt{application/json: \{\}} o
+por \texttt{text/plain: \{\}} —un tipo de contenido declarado, sin ningún esquema— pasaba igual.
+Las dos reglas actuales sí detectan ambas mutaciones (verificado reproduciendo el mismo ataque
+contra el contrato corregido). \texttt{build-images} y \texttt{build-mobile-apk} dependen de
+\texttt{validate-openapi} en su \texttt{needs}, así que un contrato roto ya no solo pone el
+\emph{run} en rojo: impide también publicar las imágenes de \emph{Docker} y el APK/manuscrito de
+la entrega.
 
 \subsubsection{Pruebas de contrato}
 
@@ -552,7 +571,7 @@ pasar por los mismos controles~\cite{kim2021devops,humble2010continuous}:
 \textbf{\#} & \textbf{Job} & \textbf{Qué hace} \\
 \midrule
 1 & \texttt{lint} & ESLint (web) + Android Lint (móvil) \\
-2 & \texttt{validate-openapi} & Spectral valida \texttt{docs/api/openapi.yaml} contra la regla propia \texttt{response-schema-required} \\
+2 & \texttt{validate-openapi} & Spectral valida \texttt{docs/api/openapi.yaml} contra las dos reglas propias de \texttt{.spectral.yaml} \\
 3 & \texttt{test-backend} & Los cinco servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
 4 & \texttt{test-web} & Vitest, incluido el contrato Pact del consumidor \\
 5 & \texttt{test-mobile} & Unitarias JVM + instrumentadas en un emulador Android headless real \\
