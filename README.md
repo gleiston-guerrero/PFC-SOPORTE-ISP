@@ -140,7 +140,7 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
   `../diagrams/*.png` con ruta relativa) y ejecutando los mismos cuatro comandos dentro del
   contenedor. Verificado: `docker run --rm -v "$(pwd)/docs:/docs" -w /docs/latex
   texlive/texlive:latest bash -c "pdflatex ... && bibtex main && pdflatex ... && pdflatex ..."`
-  compila las 58 páginas sin errores.
+  compila las 59 páginas sin errores.
 - **Documento vivo vs. documento congelado (Entregable 26 de la guía de cierre).** `docs/latex/`
   de arriba es el documento vivo: se sigue editando y su PDF se recompila en cada `push` a `main`
   (tanto en CI como en el [Release `mobile-release`](../../releases/tag/mobile-release)), así que
