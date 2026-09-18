@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 107/107 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 279/279 backend (5 servicios Java + Node + Python), 111/111 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -30,7 +30,7 @@ mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{servic
 para los cinco servicios Java (54, 140, 35, 8 y 15 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
 dentro de \texttt{services/ai-service} (16) — total backend, 279; \texttt{npm test} (que invoca
-\texttt{vitest run}) dentro de \texttt{apps/web} (107); y \texttt{./gradlew
+\texttt{vitest run}) dentro de \texttt{apps/web} (111); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (33). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
@@ -359,6 +359,17 @@ pruebas nuevas confirman que los seis estados tienen colores de fondo distintos 
 las cuatro prioridades tienen colores de borde distintos entre sí, que \texttt{CRITICO} reutiliza
 a propósito el mismo tono que \texttt{ESCALADO} (documentado en el código, no accidental), y
 cubren \texttt{AssignedChip} por primera vez.
+
+\texttt{useTickets} (\texttt{apps/web}, el equivalente de consola a \texttt{TicketListViewModel}
+en móvil, Ronda 5) ya tenía cinco pruebas, pero con cuatro ramas reales sin ejercitar. La
+búsqueda también filtra por \texttt{ticketId} además de descripción —documentado explícitamente
+en el propio código: sirve para verificar que una acción hecha desde otro cliente (la app móvil)
+se propagó al mismo backend—, pero solo se probaba la búsqueda por descripción. Una búsqueda de
+puro espacio en blanco nunca se probaba que se tratara como vacía. Las cuatro pruebas de filtro
+existentes probaban búsqueda, zona y estado por separado, nunca combinados —donde un \texttt{OR}
+por error en vez de \texttt{AND} pasaría desapercibido—. Y \texttt{refresh()} nunca se
+ejercitaba: ninguna prueba confirmaba que realmente volviera a pedir los tickets al backend. Sus
+4 pruebas nuevas cierran los cuatro huecos.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
