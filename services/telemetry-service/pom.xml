@@ -83,6 +83,17 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Entregable 1 de la guia de cierre: telemetry-service no tenia prueba de
+             arquitectura propia (la unica en el repositorio era la de svc-principal), pese a
+             que su domain/TelemetryStore.java tambien tenia @Component. Ver
+             architecture/DomainArchitectureTest.java. -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>1.3.0</version>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
 
     <build>

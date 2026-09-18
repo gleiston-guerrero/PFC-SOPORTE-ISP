@@ -84,7 +84,8 @@ uniforme de interceptarlos.
 \midrule
 \texttt{presentation} & \texttt{TicketController}, DTOs & Traduce HTTP $\leftrightarrow$ comandos; sin lógica de negocio \\
 \texttt{application} & \texttt{*CommandHandler} & Orquesta el caso de uso; no conoce HTTP ni JPA \\
-\texttt{domain} & \texttt{Ticket}, puertos, políticas & Cero anotaciones Spring/JPA; se prueba con JUnit puro \\
+\texttt{domain} & \texttt{Ticket}, puertos, políticas & Cero anotaciones Spring/JPA, verificado
+  con una prueba ArchUnit que rompe la construcción si deja de serlo; se prueba con JUnit puro \\
 \texttt{infrastructure} & Adaptadores, filtros, métricas, \emph{scheduler} & Implementa los puertos del dominio contra CockroachDB, Kafka y HTTP \\
 \bottomrule
 \end{tabular}
