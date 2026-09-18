@@ -81,6 +81,54 @@ describe('useTickets', () => {
     expect(result.current.tickets[0].status).toBe('RESUELTO')
   })
 
+  it('filtra tambien por ticketId, no solo por descripcion', async () => {
+    // Ver el comentario del propio hook: sirve para verificar en la consola que una accion
+    // hecha desde otro cliente (ej. la app movil) se propago al mismo backend -- se copia el
+    // id mostrado alla y se pega aqui. Ninguna prueba existente lo ejercitaba, solo
+    // descripcion.
+    const { result } = renderHook(() => useTickets())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    act(() => result.current.setSearch('2'))
+
+    expect(result.current.tickets).toHaveLength(1)
+    expect(result.current.tickets[0].ticketId).toBe('2')
+  })
+
+  it('busqueda de solo espacios se trata como vacia (no filtra nada)', async () => {
+    const { result } = renderHook(() => useTickets())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    act(() => result.current.setSearch('   '))
+
+    expect(result.current.tickets).toHaveLength(2)
+  })
+
+  it('busqueda, zona y estado se combinan con AND, no con OR', async () => {
+    // Las cuatro pruebas de filtro existentes probaban cada filtro por separado -- nunca la
+    // combinacion, que es donde un OR por error en vez de AND pasaria desapercibido.
+    const { result } = renderHook(() => useTickets())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+
+    act(() => {
+      result.current.setSearch('router')
+      result.current.setZoneFilter('QUEVEDO_NORTE') // el ticket "router" es de QUEVEDO_SUR
+    })
+
+    expect(result.current.tickets).toHaveLength(0)
+  })
+
+  it('refresh vuelve a pedir los tickets al backend', async () => {
+    const spy = vi.spyOn(ticketsApi, 'listTickets').mockResolvedValue(mockTickets)
+    const { result } = renderHook(() => useTickets())
+    await waitFor(() => expect(result.current.loading).toBe(false))
+    expect(spy).toHaveBeenCalledTimes(1)
+
+    act(() => result.current.refresh())
+
+    await waitFor(() => expect(spy).toHaveBeenCalledTimes(2))
+  })
+
   it('reporta error si la carga falla, sin romper el hook', async () => {
     vi.spyOn(ticketsApi, 'listTickets').mockRejectedValueOnce(new Error('network'))
     const { result } = renderHook(() => useTickets())
