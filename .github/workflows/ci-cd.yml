@@ -111,6 +111,14 @@ jobs:
         working-directory: services/report-service
         run: mvn -B test
 
+      - name: api-gateway - mvn test
+        working-directory: services/api-gateway
+        run: mvn -B test
+
+      - name: telemetry-service - mvn test
+        working-directory: services/telemetry-service
+        run: mvn -B test
+
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
@@ -201,7 +209,10 @@ jobs:
           script: ./gradlew :app:connectedDebugAndroidTest --console=plain
 
   # ============================================================
-  # 5. build-images: imagenes Docker de los 6 microservicios + apps/web, publicadas en GHCR.
+  # 5. build-images: imagenes Docker de los 7 microservicios + apps/web, publicadas en GHCR.
+  #    telemetry-service se agrego a esta matriz y a test-backend (abajo): tenia Dockerfile,
+  #    tres archivos de prueba JUnit reales y ni se probaba ni se publicaba, sin que ningun
+  #    job del flujo lo ejecutara -- hallazgo documentado en el commit 2c5bba5 y cerrado aqui.
   #    Solo en push (no en pull_request, para no llenar el registry de imagenes de prueba).
   #    needs incluye los 5 jobs de verificacion (no solo test-backend/test-web): antes
   #    publicaba igual aunque lint o test-mobile quedaran en rojo -- encontrado en una
@@ -233,6 +244,8 @@ jobs:
             context: services/report-service
           - name: api-gateway
             context: services/api-gateway
+          - name: telemetry-service
+            context: services/telemetry-service
           - name: notification-service
             context: services/notification-service
           - name: ai-service

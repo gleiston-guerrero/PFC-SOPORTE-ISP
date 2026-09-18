@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 126/126 backend (3 servicios Java + Node + Python), 75/75 web, 5/5 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 193/193 backend (5 servicios Java + Node + Python), 75/75 web, 11/11 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -25,16 +25,77 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 \end{table}
 
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
-mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal}
-y \texttt{services/report-service} para los tres servicios Java (15, 88 y 11 pruebas
-respectivamente); \texttt{npm test} (que invoca \texttt{node --test}) dentro de
-\texttt{services/notification-service} (4); \texttt{pytest} dentro de
-\texttt{services/ai-service} (8) — total backend, 126; \texttt{npm test} (que invoca
+mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
+\texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
+para los cinco servicios Java (28, 106, 31, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
+invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (4); \texttt{pytest}
+dentro de \texttt{services/ai-service} (8) — total backend, 193; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (75); y \texttt{./gradlew
-:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (5). Son los
+:app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (11). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
 y \texttt{test-mobile} de la Tabla~\ref{tab:cicd}, así que la cifra publicada es la que produce el
 propio flujo automático en cada envío, no una recontada aparte.
+
+\texttt{api-gateway} y \texttt{telemetry-service} tenían Dockerfile y pruebas JUnit reales en el
+repositorio, pero ningún trabajo del flujo los ejecutaba ni los publicaba (hallazgo documentado
+en el commit \texttt{2c5bba5}, fuera de alcance de esa corrección en su momento). De las 8 pruebas
+nuevas de \texttt{api-gateway}, 7 son de \texttt{HttpMetricsGlobalFilter}: el único filtro del
+\emph{gateway} sin ejercitar, cuya lógica reduce identificadores UUID en la ruta a un marcador de
+posición (\texttt{/api/v1/tickets/\{id\}}) para no romper la cardinalidad de las métricas de
+Prometheus.
+
+\texttt{AuthGatewayFilter} tampoco tenía ninguna prueba, a pesar de ser el único punto que exige
+autenticación sobre \texttt{/api/v1/tickets/**}: valida el token delegando en \texttt{auth-service}
+por HTTP en vez de verificar la firma localmente (Sección~\ref{sec:contrato-openapi}). Sus 12
+pruebas nuevas corren contra un doble real de \texttt{auth-service} (un
+\texttt{com.sun.net.httpserver.HttpServer} local, no un \emph{mock} de la biblioteca HTTP),
+incluida la caída completa del servicio: con el doble apagado a mitad de la prueba, el filtro
+falla cerrado (401), nunca deja pasar. \texttt{HttpMetricsFilter} —la misma clase, copiada sin
+variación en \texttt{auth-service}, \texttt{svc-principal} y \texttt{report-service}, ver el
+comentario de la propia clase— tampoco tenía pruebas en ninguna de sus tres copias; las 12 nuevas
+(4 por servicio) documentan además un hallazgo real: a diferencia de
+\texttt{HttpMetricsGlobalFilter} en el \emph{gateway}, que normaliza cualquier UUID en la ruta sin
+condición, esta clase solo normaliza cuando Spring MVC ya resolvió un \emph{handler} — una
+petición que no matchea ninguna ruta cae a la URI cruda sin normalizar, la misma cardinalidad sin
+límite que la clase existe para evitar. Se deja caracterizado, no corregido, para que quien lo
+arregle tenga la prueba lista para actualizar junto con el fix.
+
+\texttt{JwtAuthenticationFilter}, en \texttt{auth-service}, tampoco tenía prueba propia: la clase
+que puebla el \texttt{SecurityContext} a partir de un token —la pieza que hace que
+\texttt{@PreAuthorize("hasRole('ADMIN')")} funcione en \texttt{AdminUserController}— es distinta de
+\texttt{JwtService} (la emisión y validación del JWT en sí, que ya tenía prueba propia desde antes).
+Sus 7 pruebas nuevas usan un \texttt{JwtService} real, no simulado, e incluyen el caso que este
+filtro más necesita rechazar: un token con la forma correcta pero firmado con un secreto distinto
+al real. \texttt{report-service} tiene su propia copia de \texttt{AuthGatewayFilter} —no idéntica a
+la de \texttt{ticket-service}: agrega una restricción propia (solo el rol \texttt{ADMIN} puede
+consultar reportes, aunque el token sea válido) que no existe en ningún otro servicio, así que
+necesitaba su propia prueba, no la del hermano de \texttt{svc-principal}. Sus 8 pruebas nuevas
+confirman que un \texttt{TECNICO} o \texttt{CLIENTE} con sesión real reciben 403 (prohibido), no
+401 (no autenticado) —son errores distintos que un cliente del API necesita distinguir.
+
+\texttt{AdminBootstrap} (\texttt{auth-service}) crea la cuenta \texttt{ADMIN} por defecto en el
+primer arranque, únicamente si todavía no existe ninguna —el guardia exacto que evita crear un
+\texttt{ADMIN} duplicado en cada reinicio— y no tenía prueba. Sus 2 pruebas nuevas cubren ambas
+ramas: sin \texttt{ADMIN} previo, se crea uno con la contraseña cifrada (nunca el texto plano de
+configuración); con uno ya existente, no se guarda nada. \texttt{ReportQueryService.filtered()}
+—la única lógica propia de ese servicio, el resto son delegaciones directas al puerto— filtra en
+memoria por hasta tres criterios independientes, opcionales e insensibles a mayúsculas, y tampoco
+tenía prueba; sus 8 pruebas nuevas cubren cada filtro por separado, la combinación de los tres a
+la vez, y el caso que un filtro aplicado por error con \texttt{OR} en vez de \texttt{AND} dejaría
+pasar sin que nadie lo notara.
+
+\texttt{TicketListViewModel} (\texttt{apps/mobile}) tampoco tenía prueba: es el único
+\emph{ViewModel} que combina dos filtros independientes —búsqueda por texto y estado— sobre el
+mismo flujo, con una distinción sutil que solo una prueba puede proteger de verdad: el total y el
+conteo de incumplimientos de SLA se calculan sobre \emph{todos} los tickets, no sobre los ya
+filtrados, así que el resumen sigue siendo correcto aunque la lista visible esté filtrada. Sus 6
+pruebas nuevas usan Turbine para suscribirse al \texttt{StateFlow} —a diferencia de
+\texttt{TicketDetailViewModel} (un \texttt{MutableStateFlow} simple), este expone su estado vía
+\texttt{combine(...).stateIn(..., WhileSubscribed(5\_000), ...)}, que solo empieza a producir
+valores cuando alguien lo está observando— y cubren, además de la distinción de conteos, que la
+búsqueda no distingue mayúsculas, que los dos filtros se combinan con \texttt{AND}, que tocar el
+mismo filtro de estado dos veces lo quita, y que un fallo de red al refrescar conserva los
+tickets ya guardados en caché en vez de vaciar la pantalla.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}
@@ -109,10 +170,10 @@ pasar por los mismos controles~\cite{kim2021devops,humble2010continuous}:
 \textbf{\#} & \textbf{Job} & \textbf{Qué hace} \\
 \midrule
 1 & \texttt{lint} & ESLint (web) + Android Lint (móvil) \\
-2 & \texttt{test-backend} & Los tres servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
+2 & \texttt{test-backend} & Los cinco servicios Java con pruebas automatizadas + Node + Python, pruebas unitarias e integración \\
 3 & \texttt{test-web} & Vitest, incluido el contrato Pact del consumidor \\
 4 & \texttt{test-mobile} & Unitarias JVM + instrumentadas en un emulador Android headless real \\
-5 & \texttt{build-images} & Construye y publica las siete imágenes Docker en GHCR (solo en \emph{push}) \\
+5 & \texttt{build-images} & Construye y publica las ocho imágenes Docker en GHCR (solo en \emph{push}) \\
 6 & \texttt{build-mobile-apk} & Compila el APK de depuración y lo publica como artefacto \\
 7 & \texttt{integration} & Levanta el \emph{stack} completo y corre Pact proveedor + Playwright contra el backend real \\
 \bottomrule
