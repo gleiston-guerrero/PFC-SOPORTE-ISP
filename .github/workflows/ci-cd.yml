@@ -299,10 +299,16 @@ jobs:
   #    (Modulo C: "el pipeline debe producir un APK instalable").
   # ============================================================
   build-mobile-apk:
-    # compile-latex se agrega a needs (Entregable 16 de la guia de cierre): el release
-    # estable de esta entrega debe llevar el manuscrito junto al instalable, no solo el
-    # APK -- ver el paso "Publicar..." al final de este job.
-    needs: [test-mobile, compile-latex]
+    # Entregable 16 de la guia de cierre (segunda correccion, encontrada por una evaluacion
+    # externa del pipeline): antes este job solo dependia de [test-mobile, compile-latex],
+    # asi que el APK firmado y el manuscrito se publicaban aunque lint, validate-openapi o
+    # la suite completa de backend/web/integracion estuvieran en rojo -- el manuscrito ya
+    # afirmaba "ningun artefacto se publica sin que los jobs de verificacion pasen primero"
+    # (ver pruebas_cicd.tex), pero eso no era cierto para este job en particular, solo para
+    # build-images. Se agregan las mismas dependencias que build-images (lint, test-backend,
+    # test-web, test-mobile, integration) mas validate-openapi y compile-latex, que build-images
+    # no necesita pero este job si.
+    needs: [lint, validate-openapi, test-backend, test-web, test-mobile, integration, compile-latex]
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -384,21 +390,40 @@ jobs:
 
       # El paso anterior deja el APK firmado solo como artefacto del run (GitHub lo borra
       # a los 90 dias): sirve para depurar ESE run puntual, pero no es una entrega estable
-      # ni citable. Este paso publica el APK, su suma y el manuscrito compilado como GitHub
-      # Release con un tag fijo (mobile-release), que este mismo job actualiza en cada push
-      # a main -- no expira, y da una URL permanente para la entrega, en vez de un
-      # artefacto temporal.
+      # ni citable.
+      #
+      # Correccion real (Entregable 16, hallazgo de una evaluacion externa): el tag
+      # "mobile-release" que se usaba antes NO es un tag de version -- softprops/action-gh-release
+      # solo reutiliza el ref de git existente de un tag, nunca lo mueve al commit actual, asi
+      # que aunque el Release se "actualizaba" en cada push, el tag de git seguia apuntando al
+      # primer commit que lo creo. Resultado real observado: el tag quedo fijo en un commit del
+      # 13/09 mientras los binarios adjuntos se reconstruian en cada push a main -- el tag y lo
+      # que publicaba ya no correspondian. Este paso mueve el tag explicitamente al commit actual
+      # ANTES de publicar, para que "vX.Y-entrega-final" sea una version real: siempre apunta al
+      # commit de main del que salieron los binarios adjuntos.
+      - name: Mover la etiqueta de version de la entrega al commit actual
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -f v1.0-entrega-final "${{ github.sha }}"
+          git push origin v1.0-entrega-final --force
+
       - name: Publicar la entrega estable (instalable + manuscrito, no como artefacto temporal)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: mobile-release
+          tag_name: v1.0-entrega-final
           name: "Entrega estable (instalable firmado + manuscrito)"
           body: >
-            APK de release firmado y manuscrito compilado, generados automaticamente por el
-            job build-mobile-apk de este mismo pipeline en cada push a main. Reemplaza al de
-            la publicacion anterior -- para el build asociado a un commit especifico, ver los
-            artefactos soporte-isp-release-firmado y manuscrito-pdf del run correspondiente.
+            APK de release firmado y manuscrito compilado, generados automaticamente por el job
+            build-mobile-apk de este mismo pipeline, unicamente cuando lint, validate-openapi,
+            test-backend, test-web, test-mobile, integration y compile-latex ya pasaron en verde
+            (ver needs de este job en ci-cd.yml). La etiqueta v1.0-entrega-final se mueve al
+            commit actual en cada publicacion, asi que siempre apunta al mismo commit del que
+            salieron estos binarios -- para el build asociado a un commit especifico mas
+            antiguo, ver los artefactos soporte-isp-release-firmado y manuscrito-pdf del run
+            correspondiente.
           files: |
             release/apk/soporte-isp.apk
             release/apk/SHA256SUMS.txt

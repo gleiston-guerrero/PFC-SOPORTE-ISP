@@ -58,17 +58,23 @@ El paquete firmado de esta entrega está en
 [`release/apk/soporte-isp.apk`](../../release/apk/soporte-isp.apk), junto a su suma de
 verificación SHA-256 en el mismo directorio (`release/apk/SHA256SUMS.txt`).
 
-**Generación automática.** El job `build-mobile-apk` de `.github/workflows/ci-cd.yml` compila,
-alinea (`zipalign`) y firma (`apksigner`) el APK de release en cada push, y lo publica en dos
+**Generación automática.** El job `build-mobile-apk` de `.github/workflows/ci-cd.yml` solo corre
+si `lint`, `validate-openapi`, `test-backend`, `test-web`, `test-mobile`, `integration` y
+`compile-latex` ya pasaron (`needs`, corregido tras una revisión externa que encontró que antes
+solo dependía de `test-mobile`/`compile-latex` y podía publicar con el resto del pipeline en
+rojo). Compila, alinea (`zipalign`) y firma (`apksigner`) el APK de release, y lo publica en dos
 sitios: como artefacto descargable del propio *run* (`soporte-isp-release-firmado`, solo 90 días
 de retención — útil para depurar ese run puntual) y, además, como
-[GitHub Release](../../releases/tag/mobile-release) bajo el tag fijo `mobile-release`, que
-el mismo job actualiza en cada push a `main` — esa es la entrega estable: no expira y tiene URL
-permanente. Desde el Entregable 16 de la guía de cierre, ese release también incluye el
-manuscrito compilado (`main.pdf`, bajado del artefacto `manuscrito-pdf` que sube el job
-`compile-latex` del mismo *run*), no solo el instalable. Ya no es un paso manual. El `.jks` vive
-como secreto de GitHub Actions en base64 (`ANDROID_KEYSTORE_BASE64`, con
-`ANDROID_KEYSTORE_PASSWORD` y `ANDROID_KEY_ALIAS`), nunca en el repositorio.
+[GitHub Release](../../releases/tag/v1.0-entrega-final) bajo la etiqueta `v1.0-entrega-final`,
+que el mismo job mueve explícitamente al commit actual (`git tag -f && git push --force`) antes
+de publicar en cada push a `main` — a diferencia del tag fijo `mobile-release` que usaba antes
+(cuya etiqueta de git nunca se movía, aunque el release sí se actualizaba: etiqueta y binarios
+dejaban de corresponder), esta sí es una versión real. Desde el Entregable 16 de la guía de
+cierre, ese release también incluye el manuscrito compilado (`main.pdf`, bajado del artefacto
+`manuscrito-pdf` que sube el job `compile-latex` del mismo *run*), no solo el instalable. Ya no
+es un paso manual. El `.jks` vive como secreto de GitHub Actions en base64
+(`ANDROID_KEYSTORE_BASE64`, con `ANDROID_KEYSTORE_PASSWORD` y `ANDROID_KEY_ALIAS`), nunca en el
+repositorio.
 
 **Instalar en un dispositivo o emulador con depuración USB habilitada:**
 
