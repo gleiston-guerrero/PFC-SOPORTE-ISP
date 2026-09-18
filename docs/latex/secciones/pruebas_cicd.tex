@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 233/233 backend (5 servicios Java + Node + Python), 94/94 web, 20/20 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 235/235 backend (5 servicios Java + Node + Python), 94/94 web, 20/20 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & \texttt{TicketRepositoryIntegrationTest} \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -27,9 +27,9 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente, no contándola a
 mano: \texttt{mvn test} dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
 \texttt{services/report-service}, \texttt{services/api-gateway} y \texttt{services/telemetry-service}
-para los cinco servicios Java (38, 121, 31, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
+para los cinco servicios Java (38, 123, 31, 8 y 8 pruebas respectivamente); \texttt{npm test} (que
 invoca \texttt{node --test}) dentro de \texttt{services/notification-service} (11); \texttt{pytest}
-dentro de \texttt{services/ai-service} (16) — total backend, 233; \texttt{npm test} (que invoca
+dentro de \texttt{services/ai-service} (16) — total backend, 235; \texttt{npm test} (que invoca
 \texttt{vitest run}) dentro de \texttt{apps/web} (94); y \texttt{./gradlew
 :app:testDebugUnitTest} dentro de \texttt{apps/mobile} para la capa unitaria móvil (20). Son los
 mismos comandos, sin variación, que ejecutan los trabajos \texttt{test-backend}, \texttt{test-web}
@@ -186,6 +186,20 @@ parsea el encabezado \texttt{Authorization} a mano (en vez de dejarlo a Spring S
 comentario en la clase) para que un \emph{token} ausente o mal formado devuelva un 401 con el
 envoltorio \texttt{ApiResponse} del dominio en lugar del manejador genérico del framework; un
 encabezado nulo y uno sin el prefijo \texttt{"Bearer "} quedan probados por separado.
+
+Las tres estrategias de correlación de incidencias —c0/c1/c2, el componente exacto que el
+Escenario 4 del protocolo experimental (dos averías simultáneas en la misma zona) pone a prueba
+(ver ADR-0008)— ya tenían una suite propia (\texttt{CorrelationStrategyTest}) desde que se
+introdujeron, pero con dos huecos concretos. Ninguna prueba de c1 confirmaba que los tickets que
+ya estaban en una incidencia sobrevivieran al unirse uno nuevo —solo se verificaba que el
+recién llegado entrara, no que los anteriores no se perdieran, un bug de reemplazo-en-vez-de-agregar
+habría pasado inadvertido—; y ninguna prueba de c2 verificaba el valor real que la conversión
+minutos-a-segundos de la ventana le pasa al puerto de telemetría, porque los dobles de
+\texttt{TelemetryQueryPort} usados ignoraban ese parámetro por completo. Sus 2 pruebas nuevas
+cierran ambos huecos: una confirma que unirse a una candidata agrega el ticket sin descartar los
+que ya estaban, y la otra captura el argumento real recibido por el puerto y confirma que una
+ventana de 15 minutos configurada llega como 900 segundos, ni un valor crudo sin convertir ni
+otra escala.
 
 \subsubsection{Contrato de interfaz (OpenAPI)}
 \label{sec:contrato-openapi}

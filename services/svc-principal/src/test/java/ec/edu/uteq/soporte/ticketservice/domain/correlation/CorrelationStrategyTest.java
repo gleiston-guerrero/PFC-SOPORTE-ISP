@@ -57,6 +57,42 @@ class CorrelationStrategyTest {
     }
 
     @Test
+    void c1_alUnirseConservaLosTicketsQueYaEstabanEnLaIncidencia() {
+        // La prueba de arriba (c1_seUneALaCandidataMasRecienteSiExiste) solo confirma que el
+        // ticket nuevo entra -- no que los que ya estaban sigan ahi. Si unir() reemplazara el
+        // set en vez de agregarle, esa prueba seguiria en verde y este bug pasaria
+        // desapercibido.
+        CorrelationStrategy c1 = new ZonaVentanaStrategy();
+        Ticket ticket = ticketDe(Zone.QUEVEDO_NORTE);
+        Incidencia existente = incidenciaAbiertaEn(Zone.QUEVEDO_NORTE, OffsetDateTime.now());
+        UUID ticketPrevio = existente.getTicketIds().iterator().next();
+
+        Incidencia resultado = c1.correlacionar(ticket, List.of(existente));
+
+        assertThat(resultado.getTicketIds()).containsExactlyInAnyOrder(ticketPrevio, ticket.getId());
+    }
+
+    @Test
+    void c2_convierteLaVentanaDeMinutosASegundosAntesDeConsultarTelemetria() {
+        // Las pruebas de c2 de arriba usan lambdas que ignoran el parametro "ventana" por
+        // completo -- nunca verifican que el valor real que llega al puerto sea el correcto.
+        // Si el constructor dejara de multiplicar por 60 (o multiplicara por otra cosa), una
+        // ventana configurada de "15 minutos" le pasaria un numero distinto a telemetry-service
+        // y ninguna prueba existente lo notaria.
+        long[] segundosCapturados = new long[1];
+        TelemetryQueryPort capturaVentana = (zone, ventana) -> {
+            segundosCapturados[0] = ventana;
+            return false;
+        };
+        CorrelationStrategy c2 = new ZonaVentanaTelemetriaStrategy(capturaVentana, 15);
+        Ticket ticket = ticketDe(Zone.QUEVEDO_CENTRO);
+
+        c2.correlacionar(ticket, List.of());
+
+        assertThat(segundosCapturados[0]).isEqualTo(900L);
+    }
+
+    @Test
     void c1_abreUnaNuevaSiNoHayCandidatas() {
         CorrelationStrategy c1 = new ZonaVentanaStrategy();
         Ticket ticket = ticketDe(Zone.QUEVEDO_SUR);
