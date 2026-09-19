@@ -520,7 +520,10 @@ Que el contrato declare un esquema no basta si nada impide que una operación nu
 uno: la Entrega 4 se calificó con 4 operaciones sin esquema de respuesta señaladas por el
 profesor, y al revisar las diecisiete de entonces resultaron ser once, no cuatro. Para que ese
 hueco no vuelva a pasar desapercibido, el trabajo \texttt{validate-openapi} del flujo
-(\texttt{.github/workflows/ci-cd.yml}) corre \texttt{Spectral} sobre
+(\texttt{.github/workflows/ci-cd.yml}) corre \texttt{Spectral} (versión \texttt{6.16.3}, fijada
+en el propio \texttt{ci-cd.yml} -- antes \texttt{npx --yes} sin versión quedaba a merced de lo
+que \texttt{npm} resolviera como más reciente en cada corrida, sin garantía de evaluar el mismo
+contrato de la misma forma mañana que hoy) sobre
 \texttt{docs/api/openapi.yaml} en cada envío y cada \emph{pull request}, con dos reglas propias
 declaradas en \texttt{.spectral.yaml}: \texttt{response-schema-required} exige que toda
 respuesta 2xx declare al menos un tipo de contenido, y \texttt{response-content-schema-required}
