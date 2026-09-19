@@ -63,10 +63,13 @@ jobs:
 
   # ============================================================
   # validate-openapi: rompe la construccion si alguna operacion de docs/api/openapi.yaml deja
-  # de declarar content/schema en su respuesta de exito (regla propia response-schema-required
-  # en .spectral.yaml). Nace de la correccion E4/Entrega 4: el profesor senalo 4 operaciones sin
-  # esquema, y al revisar el contrato completo eran 11 de 17 -- esta regla evita que vuelva a
-  # pasar sin que el CI lo note.
+  # de declarar content/schema en su respuesta de exito (reglas propias response-schema-required
+  # y response-content-schema-required en .spectral.yaml). Nace de la correccion E4/Entrega 4: el
+  # profesor senalo 4 operaciones sin esquema, y al revisar el contrato completo eran 11 de 17 --
+  # esta regla evita que vuelva a pasar sin que el CI lo note. La version de spectral-cli se fija
+  # (Entregable 4 de la guia de cierre: una revision externa encontro que "npx --yes
+  # @stoplight/spectral-cli" sin version quedaba a merced de lo que npm resolviera como "latest"
+  # en cada corrida, sin garantia de que el mismo contrato se evalue igual manana que hoy).
   # ============================================================
   validate-openapi:
     runs-on: ubuntu-latest
@@ -78,7 +81,7 @@ jobs:
           node-version: "20"
 
       - name: Spectral lint sobre docs/api/openapi.yaml
-        run: npx --yes @stoplight/spectral-cli lint docs/api/openapi.yaml --ruleset .spectral.yaml --fail-severity=error
+        run: npx --yes @stoplight/spectral-cli@6.16.3 lint docs/api/openapi.yaml --ruleset .spectral.yaml --fail-severity=error
 
   # ============================================================
   # 2. test-backend: los 4 servicios Java (Maven) + notification-service (Node) +
