@@ -15,9 +15,11 @@ spring:
 
   jpa:
     # El esquema ya lo gestiona Flyway (db/migration/V1__init_auth_schema.sql, Entregable 5 de
-    # la guia de cierre). Hibernate NUNCA debe recrear ni alterar las tablas de este servicio.
+    # la guia de cierre). Hibernate NUNCA debe recrear ni alterar las tablas de este servicio, y
+    # "validate" ademas rompe el arranque si una entidad JPA deja de coincidir con lo que Flyway
+    # aplico -- "none" no lo detectaria.
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:

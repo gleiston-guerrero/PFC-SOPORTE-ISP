@@ -13,14 +13,19 @@ Verificar en la consola web que los 3 nodos aparecen `live`: http://localhost:80
 ## Cargar el esquema
 
 Desde el Entregable 5 de la guía de cierre, el esquema de `ticket_db` es una migración Flyway
-versionada (`services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql`),
-no un guion suelto de esta carpeta — normalmente la aplica el propio `ticket-service` al
-arrancar. Para las pruebas manuales de este archivo (cluster levantado aparte, sin los
-microservicios), se carga el mismo archivo de migración directamente:
+versionada (`services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql`
++ `V2__configure_ticket_zone.sql`), no un guion suelto de esta carpeta — normalmente las aplica
+el propio `ticket-service` al arrancar, contra una base que crea `db-init` en
+`docker-compose.yml` antes de que el servicio arranque. Para las pruebas manuales de este
+archivo (cluster levantado aparte, sin los microservicios ni `db-init`), hay que crear la base
+primero: ninguna de las dos migraciones trae `CREATE DATABASE` (eso es responsabilidad de
+`db-init`, no de Flyway), así que cargarlas sin crear `ticket_db` antes las deja en `defaultdb`
+y la migración V2 (que sí hace `SET DATABASE = ticket_db`) fallaría por base inexistente.
 
 ```bash
-cockroach sql --insecure --host=localhost:26257 -f ../services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql
-cockroach sql --insecure --host=localhost:26257 -f config/zones.sql
+cockroach sql --insecure --host=localhost:26257 -e "CREATE DATABASE IF NOT EXISTS ticket_db;"
+cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql
+cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V2__configure_ticket_zone.sql
 cockroach sql --insecure --host=localhost:26257 -f scripts/seed_partitioned.sql
 ```
 

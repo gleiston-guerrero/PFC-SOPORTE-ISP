@@ -15,9 +15,10 @@ spring:
 
   jpa:
     # El esquema lo gestiona Flyway (db/migration/, Entregable 5 de la guia de cierre) --
-    # Hibernate nunca crea/altera la tabla.
+    # Hibernate nunca crea/altera la tabla, y "validate" ademas rompe el arranque si la entidad
+    # deja de coincidir con lo que Flyway aplico -- "none" no lo detectaria.
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:

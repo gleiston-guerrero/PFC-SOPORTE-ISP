@@ -129,13 +129,18 @@ almacenamiento físico compartido.
 
 Como la fragmentación pasó de ser por zona a ser por fecha, ya no existe una correspondencia 1:1
 entre una partición y la \emph{locality} de un nodo específico: una partición trimestral contiene
-tickets de las tres zonas geográficas mezclados. En consecuencia, \texttt{zones.sql}
+tickets de las tres zonas geográficas mezclados. En consecuencia, la política de replicación
 (Listado~\ref{lst:zones}) ya no ancla particiones a nodos por restricción de \emph{locality};
 exige uniformemente un factor de replicación 3 sobre toda la tabla, de forma que la pérdida de
 cualquier nodo individual del clúster de tres no comprometa la disponibilidad de escritura
-(2 de 3 réplicas siguen constituyendo mayoría para Raft~\cite{ongaro2014raft}).
+(2 de 3 réplicas siguen constituyendo mayoría para Raft~\cite{ongaro2014raft}). Al igual que el
+esquema de la Sección anterior, esta política es hoy la migración Flyway
+\texttt{V2\_\_configure\_ticket\_zone.sql} (Entregable 5 de la guía de cierre), aplicada
+automáticamente después de \texttt{V1} en vez del guion suelto \texttt{db-cluster/config/zones.sql}
+que existía hasta entonces —ese archivo se retiró del repositorio, no quedó como una segunda
+copia que pudiera desincronizarse de la migración real.
 
-\begin{lstlisting}[language=SQL, caption={Política de replicación uniforme (\texttt{zones.sql})}, label={lst:zones}]
+\begin{lstlisting}[language=SQL, caption={Política de replicación uniforme (\texttt{V2\_\_configure\_ticket\_zone.sql})}, label={lst:zones}]
 ALTER TABLE tickets CONFIGURE ZONE USING num_replicas = 3;
 \end{lstlisting}
 

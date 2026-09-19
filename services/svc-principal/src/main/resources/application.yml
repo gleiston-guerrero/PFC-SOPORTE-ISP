@@ -15,9 +15,13 @@ spring:
 
   jpa:
     # El esquema (incluyendo PARTITION BY) ya lo gestiona Flyway (db/migration/, Entregable 5
-    # de la guia de cierre). Hibernate NUNCA debe recrear ni alterar la tabla particionada.
+    # de la guia de cierre). Hibernate NUNCA debe recrear ni alterar la tabla particionada, y
+    # "validate" (a diferencia de "none") ademas verifica en el arranque que las entidades JPA
+    # coincidan con el esquema real que Flyway aplico -- "none" no detectaria una migracion que
+    # dejara de agregar una columna que una entidad si espera; "validate" rompe el arranque con
+    # el nombre exacto de la columna/tabla que falta, sin llegar a alterar nada.
     hibernate:
-      ddl-auto: none
+      ddl-auto: validate
     show-sql: true
     properties:
       hibernate:
