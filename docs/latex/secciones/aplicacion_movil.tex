@@ -99,10 +99,15 @@ identificador (Sección~\ref{sec:web}). Esa demostración se ejecutó y quedó v
 foto y GPS reales, contra el \emph{stack} completo de \emph{Docker Compose}, emparejado con la
 fila resultante en CockroachDB —
 \texttt{docs/evidencias/entregable11\_integracion\_movil\_backend\_20260916.md} documenta el
-procedimiento completo, incluida una limitación real declarada (el \texttt{trace\_id} de la
-línea de \emph{log} capturada no se cruza con un registro de acceso del \emph{gateway}, así que
-el emparejamiento con la captura de pantalla depende de la cercanía temporal, no de una cadena de
-trazas verificable de punta a punta).
+procedimiento completo, incluida una limitación real declarada en esa captura del 16/09 (el
+\texttt{trace\_id} de la línea de \emph{log} capturada no se cruzaba con un registro de acceso
+del \emph{gateway}, así que el emparejamiento con la captura de pantalla dependía de la cercanía
+temporal, no de una cadena de trazas verificable de punta a punta). Esa brecha ya se cerró en el
+código: \texttt{AuthGatewayFilter} escribe ahora una línea de acceso real
+(\texttt{ticket-service.access}, con método, ruta, código de estado, \texttt{userId} y
+\texttt{role}) correlacionable por \texttt{trace\_id} con la línea de Hibernate SQL de la misma
+petición —verificado con una prueba dedicada que captura el \emph{log} y comprueba sus campos—,
+aunque la captura del 16/09 es anterior a ese cambio y no lo refleja.
 
 \subsection{Pruebas}
 

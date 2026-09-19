@@ -75,17 +75,21 @@ id                                    status     resolved_at                  ev
 0fb2c5be-3e80-46aa-af79-f2aa597f8e4a  RESUELTO   2026-09-16 05:22:23.950271+00  0.0000000         0.0000000          2417037
 ```
 
-**Esto no es la línea de acceso del *gateway*** (no queda registrada la petición HTTP
+**Esto no era la línea de acceso del *gateway*** (no quedaba registrada la petición HTTP
 `PATCH /api/v1/tickets/{id}/status` en sí, con su método, ruta y código de estado; solo la
 sentencia SQL que ese `PATCH` disparó dentro de `ticket-service`) ni un volcado completo del log
 del contenedor: es un extracto de dos piezas —la línea de Hibernate y la fila resultante de la
 consulta SQL— seleccionadas porque son las que corroboran el efecto del `PATCH`, no el log crudo
 íntegro que un nombre de archivo con "_raw_" sugiere. Se relabela así en vez de seguir llamándolo
-"completo"; queda pendiente, fuera de alcance de esta corrección, capturar además la línea de
-acceso real del *gateway* o de `ticket-service` con el método/ruta/código de estado de la
-petición HTTP. El extracto (con las coordenadas igualmente reemplazadas por
-`0.0000000, 0.0000000`) está en
-[`entregable11_backend_log_raw_20260916.txt`](entregable11_backend_log_raw_20260916.txt).
+"completo". El extracto (con las coordenadas igualmente reemplazadas por `0.0000000, 0.0000000`)
+está en [`entregable11_backend_log_raw_20260916.txt`](entregable11_backend_log_raw_20260916.txt).
+
+**Actualización posterior a esta captura**: `AuthGatewayFilter` ahora sí escribe la línea de
+acceso real (`ticket-service.access`, con método, ruta, código de estado, `userId` y `role`,
+correlacionable por `trace_id` con la línea de Hibernate SQL de la misma petición —verificado con
+una prueba dedicada, `AuthGatewayFilterTest.unaPeticionAutorizadaEscribeLaLineaDeAccesoConMetodoRutaEstadoYUsuario`).
+Esta captura del 16/09 es anterior a ese cambio, así que no lo incluye; una repetición futura de
+este mismo procedimiento sí lo tendría.
 
 ## Por qué esto cumple lo pedido
 

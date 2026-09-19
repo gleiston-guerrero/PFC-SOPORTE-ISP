@@ -7,6 +7,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
@@ -31,6 +33,16 @@ import java.util.UUID;
  */
 @Component
 public class AuthGatewayFilter extends OncePerRequestFilter {
+
+    // Entregable 11 de la guia de cierre: la evidencia de integracion movil-backend no
+    // emparejaba la captura de la app con ninguna linea de acceso real (metodo, ruta, codigo
+    // de estado de la peticion HTTP) -- solo con la sentencia SQL que esa peticion disparaba
+    // rio abajo dentro de ticket-service. Este logger cierra ese hueco: al usar SLF4J con
+    // logstash-logback-encoder (ya configurado en logback-spring.xml), la linea JSON que
+    // produce lleva el mismo campo "trace_id" del MDC que ya llevaba la linea de Hibernate SQL
+    // -- ambas lineas de un mismo request quedan correlacionables por trace_id, no solo por
+    // cercania temporal.
+    private static final Logger ACCESS_LOG = LoggerFactory.getLogger("ticket-service.access");
 
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
@@ -74,7 +86,13 @@ public class AuthGatewayFilter extends OncePerRequestFilter {
             request.setAttribute("authUserId", UUID.fromString(validated.data().userId()));
             request.setAttribute("authRole", validated.data().role());
             request.setAttribute("authZone", parseZone(validated.data().zone()));
-            filterChain.doFilter(request, response);
+            try {
+                filterChain.doFilter(request, response);
+            } finally {
+                ACCESS_LOG.info("{} {} -> {} (userId={}, role={})",
+                        request.getMethod(), request.getRequestURI(), response.getStatus(),
+                        validated.data().userId(), validated.data().role());
+            }
         } catch (RestClientException e) {
             writeUnauthorized(response, "Token invalido o auth-service no disponible: " + e.getMessage());
         }

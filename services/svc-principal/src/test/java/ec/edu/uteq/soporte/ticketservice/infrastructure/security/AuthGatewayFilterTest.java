@@ -139,6 +139,43 @@ class AuthGatewayFilterTest {
     }
 
     @Test
+    void unaPeticionAutorizadaEscribeLaLineaDeAccesoConMetodoRutaEstadoYUsuario() throws Exception {
+        // Entregable 11 de la guia de cierre: la evidencia de integracion movil-backend no
+        // tenia ninguna linea de acceso real (metodo/ruta/codigo de estado) que emparejar con
+        // la sentencia SQL disparada rio abajo -- solo cercania temporal. Esta prueba confirma
+        // que esa linea ahora existe de verdad y lleva los campos que hacen falta para
+        // reconstruir que peticion la produjo.
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("ticket-service.access");
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        try {
+            UUID userId = UUID.randomUUID();
+            UUID ticketId = UUID.randomUUID();
+            proximaRespuesta.set(respuestaValidaJson(userId, "TECNICO", "QUEVEDO_SUR"));
+            MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/v1/tickets/" + ticketId);
+            request.addHeader("Authorization", "Bearer token-valido");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            response.setStatus(200);
+
+            filtro().doFilterInternal(request, response, new MockFilterChain());
+
+            assertThat(appender.list).hasSize(1);
+            String linea = appender.list.get(0).getFormattedMessage();
+            assertThat(linea)
+                    .contains("PATCH")
+                    .contains("/api/v1/tickets/" + ticketId)
+                    .contains("200")
+                    .contains(userId.toString())
+                    .contains("TECNICO");
+        } finally {
+            logger.detachAppender(appender);
+        }
+    }
+
+    @Test
     void unaZonaDesconocidaSeTrataComoSinZonaEnVezDeFallar() throws Exception {
         // Fail-closed deliberado (ver comentario de parseZone en produccion): una zona que
         // el enum no reconoce no debe tumbar la peticion con un error de deserializacion,
