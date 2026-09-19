@@ -34,6 +34,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.of(null, message));
     }
 
+    // Un evidencePhotoBase64 mal formado (Base64.getDecoder().decode en TicketController) lanza
+    // esta excepcion sin pasar por Bean Validation; sin este manejador caia en handleGeneric y
+    // devolvia 500 por un dato de entrada invalido, no por un fallo del servidor (Entregable 10).
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Object>> handleIllegalArgument(IllegalArgumentException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.of(null, "Solicitud invalida: " + ex.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Object>> handleGeneric(Exception ex) {
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -10,15 +10,36 @@ rules:
   operation-operationId: off
   operation-tag-defined: off
 
-  # Regla propia: toda respuesta de exito (2xx) debe declarar content + schema. Sin esto, el
-  # contrato puede describir solo la descripcion en prosa de una operacion sin comprometerse a
-  # una forma verificable -- que es justo el hueco que senalo el profesor en la Entrega 4 (4 de
-  # 17 operaciones sin esquema de respuesta; al revisar el resto, en realidad eran 11 de 17).
+  # Regla propia: toda respuesta de exito (2xx) debe declarar al menos un tipo de contenido no
+  # vacio. "content: {}" es truthy (un objeto vacio no es falsy en JS), asi que una version
+  # anterior de esta regla ("field: content, function: truthy") la dejaba pasar -- por eso aqui
+  # se cuenta el numero de tipos de contenido declarados, no solo si la clave existe. Es justo
+  # el hueco que senalo el profesor en la Entrega 4 (4 de 17 operaciones sin esquema de
+  # respuesta; al revisar el resto, en realidad eran 11 de 17).
   response-schema-required:
-    description: Toda respuesta 2xx debe declarar content.application/json.schema
-    message: "{{property}} no declara content/schema en su respuesta de exito"
+    description: Toda respuesta 2xx debe declarar al menos un tipo de contenido
+    message: "{{property}} no declara ningun tipo de contenido en su respuesta de exito"
     severity: error
-    given: "$.paths[*][*].responses[?(@property.match(/^2/))]"
+    given: "$.paths[*][*].responses[?(@property.match(/^2/))].content"
     then:
-      field: content
+      function: length
+      functionOptions:
+        min: 1
+
+  # La regla anterior sola no alcanzaba: "content: {application/json: {}}" o
+  # "content: {text/plain: {}}" (un tipo de contenido declarado, pero sin schema) la pasaban --
+  # pese a que el manuscrito (pruebas_cicd.tex) afirma que se exige
+  # "content.application/json.schema en toda respuesta 2xx". Una revision externa lo verifico
+  # mutando el contrato: quitar content de /logout rompia con la regla anterior, pero cambiar
+  # content a application/json:{} o a text/plain:{} en cualquier operacion pasaba igual, sin
+  # romper nada. Esta regla exige que TODO tipo de contenido declarado en una respuesta 2xx
+  # tenga un schema no vacio -- no solo application/json, para no dejar el mismo hueco abierto
+  # en text/csv u otro tipo que se agregue despues.
+  response-content-schema-required:
+    description: Todo tipo de contenido de una respuesta 2xx debe declarar un schema
+    message: "{{property}} no declara un schema no vacio"
+    severity: error
+    given: "$.paths[*][*].responses[?(@property.match(/^2/))].content[*]"
+    then:
+      field: schema
       function: truthy

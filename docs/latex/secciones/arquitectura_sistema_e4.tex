@@ -132,13 +132,31 @@ uniforme de interceptarlos.
 \end{tabular}
 \end{table}
 
+La regla de dependencia estricta ("las capas externas dependen de las internas, nunca al
+revés") tampoco se verificaba de forma automática más allá de la ausencia de anotaciones de
+Spring en \texttt{domain}: una revisión externa encontró que \texttt{TicketWriter}
+(\texttt{application/}) importaba directamente \texttt{CrdbMetrics}
+(\texttt{infrastructure/metrics/}) para incrementar un contador de reintentos, violando la
+regla que esta misma tabla declara, sin que \texttt{DomainArchitectureTest} lo detectara. Se
+corrigió con inversión de dependencias: \texttt{application/TransactionRetryMetrics.java} es
+ahora el puerto que \texttt{TicketWriter} conoce, y \texttt{CrdbMetrics} lo implementa; Spring
+sigue inyectando la implementación real por tipo. \texttt{DomainArchitectureTest} se amplió con
+una regla de \texttt{Architectures.layeredArchitecture()} que verifica la dirección real de las
+cuatro capas (\texttt{domain} $\leftarrow$ \texttt{application} $\leftarrow$
+\texttt{infrastructure}/\texttt{presentation}), con una única excepción declarada:
+\texttt{infrastructure} puede depender de \texttt{presentation} porque
+\texttt{AuthGatewayFilter} reutiliza el sobre de respuesta \texttt{ApiResponse} para las
+respuestas 401/403 que rechaza antes de que la petición llegue a un controlador.
+
 Una revisión externa del repositorio observó, con razón, que este refactor completo solo se
-había aplicado a \texttt{ticket-service}: los otros cinco microservicios seguían con la
-organización heredada de la Entrega 2. Se extendió el mismo patrón a \texttt{auth-service} y
-\texttt{report-service} --los de menor superficie de los cinco restantes-- dejando
-explícitamente fuera de alcance \texttt{ai-service}, \texttt{notification-service} y
-\texttt{api-gateway} por el tiempo disponible antes del cierre; se documenta el alcance real en
-vez de sugerir un refactor completo que no ocurrió.
+había aplicado a \texttt{ticket-service}: los otros seis microservicios seguían con la
+organización heredada de la Entrega 2 o de su propio diseño original (\texttt{telemetry-service}
+es nuevo de esta entrega, sin arrastrar nada de E2). Se extendió el mismo patrón a
+\texttt{auth-service} y \texttt{report-service} --los de menor superficie de los seis
+restantes-- dejando explícitamente fuera de alcance \texttt{ai-service},
+\texttt{notification-service}, \texttt{api-gateway} y \texttt{telemetry-service} por el tiempo
+disponible antes del cierre; se documenta el alcance real en vez de sugerir un refactor completo
+que no ocurrió.
 
 \begin{table}[H]
 \centering
@@ -158,6 +176,10 @@ caso.}
 \texttt{report-service} & 4 capas & \texttt{ReportController} llamaba a
   \texttt{TicketSummaryRepository} (JPA) y filtraba en memoria directamente en la capa de
   presentación, sin capa de aplicación \\
+\texttt{telemetry-service} & Sin refactor de capas; violación puntual corregida &
+  \texttt{TelemetryStore} (su único paquete \texttt{domain}) tenía \texttt{@Component}, igual
+  que las 9 clases de \texttt{ticket-service}; se movió a un \texttt{DomainBeansConfig} propio y
+  se agregó su propia prueba ArchUnit (antes solo existía en \texttt{ticket-service}) \\
 \texttt{ai-service}, \texttt{notification-service}, \texttt{api-gateway} & Sin cambios &
   Fuera de alcance en esta entrega (declarado explícitamente, no un olvido) \\
 \bottomrule

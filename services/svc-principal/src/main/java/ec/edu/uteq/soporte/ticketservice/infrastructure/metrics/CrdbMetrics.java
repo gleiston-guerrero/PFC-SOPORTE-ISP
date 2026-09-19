@@ -2,6 +2,7 @@ package ec.edu.uteq.soporte.ticketservice.infrastructure.metrics;
 
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
+import ec.edu.uteq.soporte.ticketservice.application.TransactionRetryMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -28,7 +29,7 @@ import java.time.Duration;
  * no contra un valor cacheado.
  */
 @Component
-public class CrdbMetrics {
+public class CrdbMetrics implements TransactionRetryMetrics {
 
     private final Counter transactionRetries;
     private final Timer queryDuration;
@@ -61,6 +62,7 @@ public class CrdbMetrics {
         return queryDuration;
     }
 
+    @Override
     public void incrementTransactionRetries() {
         transactionRetries.increment();
     }

@@ -50,8 +50,21 @@ Se integran las dos capacidades obligatorias del Módulo C:
         aplicación (sin escribir a almacenamiento externo compartido).
   \item \textbf{Geolocalización}: ubicación del cierre capturada con
         \texttt{FusedLocationProviderClient}, solicitada solo en el momento del cierre, no como
-        rastreo continuo en segundo plano.
+        rastreo continuo en segundo plano, y precedida de un diálogo explícito de consentimiento
+        que declara la finalidad y el destino del dato antes de pedir el permiso del sistema
+        operativo (\texttt{TicketDetailScreen.kt}).
 \end{itemize}
+
+La foto y las coordenadas no se quedan en el teléfono: \texttt{TicketRepository.closeOnSite}
+las envía junto con el cambio de estado a \texttt{RESUELTO} en una sola llamada
+\texttt{PATCH /api/v1/tickets/\{id\}/status} (foto codificada en Base64), con reintento —hasta 3
+veces ante \texttt{IOException}, con espera de 1 y 2\,s— para tolerar una red de campo
+inestable. El servicio principal las guarda como columnas \texttt{BYTES}/\texttt{FLOAT8}
+adicionales de la fila del ticket (migración \texttt{V3\_\_add\_close\_evidence.sql}), sin un
+almacén de objetos aparte. El reintento es idempotente: si el primer \texttt{PATCH} sí llegó al
+servidor y solo se perdió la respuesta, el segundo no vuelve a mover \texttt{resolvedAt} ni a
+recalcular el incumplimiento de SLA, y el servidor exige la evidencia cuando quien cierra es un
+\texttt{TECNICO} (un \texttt{ADMIN} puede seguir resolviendo un ticket sin pasar por el móvil).
 
 La Figura~\ref{fig:movil-capturas} muestra ambas capacidades reales en el emulador
 (\texttt{Medium\_Phone\_API\_36.0}), instalando el mismo APK de depuración que produce el

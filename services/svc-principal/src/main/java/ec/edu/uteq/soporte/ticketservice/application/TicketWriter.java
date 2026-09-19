@@ -2,7 +2,6 @@ package ec.edu.uteq.soporte.ticketservice.application;
 
 import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
 import ec.edu.uteq.soporte.ticketservice.domain.TicketRepository;
-import ec.edu.uteq.soporte.ticketservice.infrastructure.metrics.CrdbMetrics;
 import org.springframework.dao.ConcurrencyFailureException;
 import org.springframework.stereotype.Component;
 
@@ -25,9 +24,9 @@ public class TicketWriter {
     private static final Logger LOGGER = Logger.getLogger(TicketWriter.class.getName());
 
     private final TicketRepository ticketRepository;
-    private final CrdbMetrics crdbMetrics;
+    private final TransactionRetryMetrics crdbMetrics;
 
-    public TicketWriter(TicketRepository ticketRepository, CrdbMetrics crdbMetrics) {
+    public TicketWriter(TicketRepository ticketRepository, TransactionRetryMetrics crdbMetrics) {
         this.ticketRepository = ticketRepository;
         this.crdbMetrics = crdbMetrics;
     }

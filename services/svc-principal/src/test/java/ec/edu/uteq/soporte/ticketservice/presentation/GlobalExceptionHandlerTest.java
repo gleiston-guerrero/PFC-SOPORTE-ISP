@@ -82,6 +82,18 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    void handleIllegalArgument_devuelve400ConElMensajeDeLaExcepcion() {
+        // Antes de este handler, un evidencePhotoBase64 malformado (Base64.getDecoder().decode
+        // en TicketController, Entregable 10) caia en handleGeneric y devolvia 500 por un dato
+        // de entrada invalido, no por un fallo real del servidor.
+        ResponseEntity<ApiResponse<Object>> response =
+                handler.handleIllegalArgument(new IllegalArgumentException("Illegal base64 character"));
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().message()).isEqualTo("Solicitud invalida: Illegal base64 character");
+    }
+
+    @Test
     void handleGeneric_devuelve500ConElMensajeDeLaExcepcionOriginal() {
         ResponseEntity<ApiResponse<Object>> response =
                 handler.handleGeneric(new RuntimeException("fallo inesperado en la base de datos"));

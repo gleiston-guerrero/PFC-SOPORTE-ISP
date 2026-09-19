@@ -6,15 +6,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import org.springframework.stereotype.Component;
 
 /**
  * Buffer en memoria de eventos de telemetria, acotado por zona con ventana deslizante (PE-U1,
  * equipo ACC). No es persistencia de negocio -- es un canal: igual que CORREL describe sus
  * modos c1/c2 como ventana deslizante y no como historial completo, este buffer solo conserva
  * lo reciente y descarta lo viejo.
+ *
+ * Java puro, sin @Component (Entregable 1 de la guia de cierre): Spring la registra como bean
+ * en infrastructure/config/DomainBeansConfig.java, el unico punto de infrastructure/ que la
+ * conoce por su tipo concreto, igual que svc-principal hizo con sus 9 clases de domain/.
  */
-@Component
 public class TelemetryStore {
 
     /** Cuanto se conserva un evento antes de poder ser descartado por {@link #purgar}. */

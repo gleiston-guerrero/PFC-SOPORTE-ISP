@@ -221,10 +221,13 @@ jobs:
   #    "integration" (el unico job que prueba contra el stack real, no mocks) corria en
   #    PARALELO con este job en vez de antes -- se agrega tambien a needs, sin crear
   #    dependencia circular porque integration construye sus propias imagenes localmente
-  #    via "docker compose up --build", no depende de las que publica GHCR.
+  #    via "docker compose up --build", no depende de las que publica GHCR. Una tercera
+  #    auditoria (entregable #4 de la guia de cierre) encontro que un contrato OpenAPI roto
+  #    ponia el run en rojo (validate-openapi) pero no impedia publicar igual las imagenes,
+  #    porque este job tampoco dependia de ese trabajo -- se agrega tambien.
   # ============================================================
   build-images:
-    needs: [lint, test-backend, test-web, test-mobile, integration]
+    needs: [lint, validate-openapi, test-backend, test-web, test-mobile, integration]
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:

@@ -99,11 +99,11 @@ class TicketControllerTest {
 
     @Test
     void updateStatusConBase64InvalidoLanzaIllegalArgumentSinTocarElManejador() {
-        // Hallazgo, no solo prueba: un evidencePhotoBase64 malformado (un bug real del
-        // cliente movil, no necesariamente malicioso) no tiene manejo explicito -- cae al
-        // @ExceptionHandler(Exception.class) generico de GlobalExceptionHandler, que
-        // responde 500 "Error interno" en vez de un 400 claro. Se deja documentado como
-        // caracterizacion del comportamiento actual, no como aserto de que sea deseable.
+        // El decodificado Base64 (logica propia del controlador) lanza IllegalArgumentException
+        // para un evidencePhotoBase64 malformado; GlobalExceptionHandler.handleIllegalArgument
+        // la traduce a 400 en el stack HTTP real (Entregable 10). Esta prueba llama al
+        // controlador directo, sin Spring, por lo que solo verifica el origen de la excepcion;
+        // el 400 esta cubierto en GlobalExceptionHandlerTest.
         UpdateStatusRequest request = new UpdateStatusRequest(TicketStatus.RESUELTO, "esto-no-es-base64-valido!!", -1.0, -79.0);
 
         assertThatThrownBy(() -> controller().updateStatus(UUID.randomUUID(), request, "TECNICO", Zone.QUEVEDO_NORTE))

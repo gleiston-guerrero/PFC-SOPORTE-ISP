@@ -34,7 +34,7 @@ INTEGRANTES = {
 # Dependencias y artefactos generados: no los escribe una persona, los produce una herramienta.
 EXCLUIR = re.compile(
     r"(^|/)(node_modules|build|dist|\.gradle|target)/"
-    r"|\.(bbl|blg|aux|toc|out|lof|lot|lock)$"
+    r"|\.(bbl|blg|aux|toc|out|lof|lot|lock|log)$"
     r"|(^|/)(package-lock\.json|yarn\.lock|gradlew|gradlew\.bat)$"
     r"|\.(jar|png|jpg|jpeg|pdf|apk|exec)$"
 )

@@ -55,15 +55,18 @@ no sugerir una continuidad que no existió.
 La Tabla~\ref{tab:aporte-integrantes} declara, por área del repositorio, quién aportó la mayoría
 de las líneas según el historial de control de versiones. El método es el guion
 \texttt{scripts/aporte\_manuscrito.py}, que recorre \texttt{git log --numstat} sobre las rutas
-indicadas, mapea los dieciséis nombres de autor del historial a los cuatro correos reales, y
+indicadas, mapea los dieciséis nombres de autor del historial a los seis correos reales que
+identifican a los cuatro integrantes (algunos usan más de una dirección de \emph{commit}), y
 descarta las dependencias y los artefactos generados: \texttt{node\_modules/}, \texttt{build/},
 \texttt{dist/}, \texttt{target/}, los archivos de bloqueo de dependencias y los artefactos de
 compilación de \LaTeX{} (\texttt{.bbl}, \texttt{.blg}, \texttt{.aux}, \texttt{.toc},
-\texttt{.out}, \texttt{.log}). Esa exclusión importa: sobre \texttt{docs/latex/} son 581 de las
-6.008 líneas insertadas, y sin descartarlas el aporte de C. Carpio al manuscrito pasa de un
-8,38\,\% real a un 10,45\,\% aparente. El método declarado en este epígrafe y el método aplicado
-en la tabla son el mismo guion, y cualquiera puede reproducir cada fila corriéndolo:
-\texttt{python scripts/aporte\_manuscrito.py docs/latex/ --commit <commit>}.
+\texttt{.out}, \texttt{.log}). Esa exclusión importa: hasta la entrega anterior el guion no
+excluía \texttt{.log}, y un \texttt{docs/latex/main.log} de 726 líneas que estuvo versionado en
+un commit antiguo inflaba el aporte de C. Pacheco al manuscrito; esta entrega corrige el patrón
+para que también descarte \texttt{.log}, y el método declarado en este epígrafe y el método
+aplicado en la tabla vuelven a ser el mismo guion. Cualquiera puede reproducir cada fila
+corriéndolo sobre el commit exacto de esta entrega:
+\texttt{python scripts/aporte\_manuscrito.py docs/latex/ --commit ceae7375a6433b81361a0403898dd5dc5d66540b}.
 
 \begin{table}[H]
 \centering
@@ -75,23 +78,24 @@ artefactos generados excluidos)}
 \toprule
 \textbf{Área} & \textbf{Aporte principal} \\
 \midrule
-Backend (\texttt{services/}) & C. Pacheco 40,69\,\%, C. Carpio 27,45\,\%, R. Cando 25,01\,\%, J. Álvarez 6,85\,\% \\
-Aplicación web (\texttt{apps/web/}) & C. Carpio 97,68\,\%, J. Álvarez 2,32\,\% \\
-Aplicación móvil (\texttt{apps/mobile/}) & R. Cando 97,65\,\%, C. Carpio 2,35\,\% \\
-Manuscrito (\texttt{docs/latex/}) & C. Pacheco 76,45\,\%, R. Cando 12,90\,\%, C. Carpio 8,38\,\%, J. Álvarez 2,27\,\% \\
-Experimentos (\texttt{experimentos/}, \texttt{spark/}) & R. Cando 73,78\,\%, C. Pacheco 17,71\,\%, C. Carpio 5,20\,\%, J. Álvarez 3,31\,\% \\
+Backend (\texttt{services/}) & C. Pacheco 31,45\,\%, J. Álvarez 27,99\,\%, C. Carpio 21,22\,\%, R. Cando 19,34\,\% \\
+Aplicación web (\texttt{apps/web/}) & C. Carpio 83,41\,\%, J. Álvarez 16,59\,\% \\
+Aplicación móvil (\texttt{apps/mobile/}) & R. Cando 73,60\,\%, J. Álvarez 24,63\,\%, C. Carpio 1,77\,\% \\
+Manuscrito (\texttt{docs/latex/}) & C. Pacheco 62,95\,\%, J. Álvarez 15,81\,\%, R. Cando 12,87\,\%, C. Carpio 8,37\,\% \\
+Experimentos (\texttt{experimentos/}, \texttt{spark/}) & R. Cando 73,74\,\%, C. Pacheco 17,70\,\%, C. Carpio 5,19\,\%, J. Álvarez 3,37\,\% \\
 Observabilidad (\texttt{ops/}) & C. Pacheco 100,00\,\% \\
-CI/CD (\texttt{.github/}) & C. Carpio 73,39\,\%, J. Álvarez 13,39\,\%, C. Pacheco 6,94\,\%, R. Cando 6,29\,\% \\
-Arquitectura (\texttt{docs/adr/}, \texttt{docs/diagrams/}) & \textbf{J. Álvarez 45,82\,\%}, C. Pacheco 22,52\,\%, R. Cando 16,28\,\%, C. Carpio 15,38\,\% \\
+CI/CD (\texttt{.github/}) & C. Carpio 63,02\,\%, J. Álvarez 25,62\,\%, C. Pacheco 5,96\,\%, R. Cando 5,40\,\% \\
+Arquitectura (\texttt{docs/adr/}, \texttt{docs/diagrams/}) & \textbf{J. Álvarez 54,83\,\%}, C. Pacheco 18,77\,\%, R. Cando 13,57\,\%, C. Carpio 12,83\,\% \\
 Contratos (\texttt{pacts/}, \texttt{docs/api/}) & \textbf{J. Álvarez 100,00\,\%} \\
 \bottomrule
 \end{tabular}
 
 \vspace{2pt}
 {\footnotesize\textit{Nota: cada fila se reproduce con
-\texttt{python scripts/aporte\_manuscrito.py <rutas> --commit COMMIT\_ENTREGA}, tomada en el
-commit de la entrega. Las líneas de dependencias y de artefactos generados quedan fuera del
-denominador, como declara el epígrafe.}}
+\texttt{python scripts/aporte\_manuscrito.py <rutas> --commit ceae7375a6433b81361a0403898dd5dc5d66540b},
+el commit de cierre de la entrega anterior a esta corrección (el commit de esta propia corrección
+no se usa como referencia porque medirse a sí mismo es circular). Las líneas de dependencias y de
+artefactos generados quedan fuera del denominador, como declara el epígrafe.}}
 \end{table}
 
 La distribución es desigual por área, no por persona: cada uno de los cuatro integrantes es autor
@@ -120,7 +124,7 @@ en vez de omitirlo, es más útil que una cifra de commits que por sí sola no d
         identificador común.
   \item Una evaluación experimental honesta contra ISO/IEC 25010, que reporta tanto lo que
         cumple el umbral objetivo como lo que no, con causa raíz identificada en cada caso.
-  \item Cobertura de pruebas de \texttt{ticket-service} en 81.1\,\% del código propio (por
+  \item Cobertura de pruebas de \texttt{ticket-service} en 96.6\,\% de líneas propias (por
         encima del objetivo del 70\,\%), priorizando con el propio reporte de JaCoCo las clases
         reales con mayor número de líneas sin cubrir.
 \end{itemize}

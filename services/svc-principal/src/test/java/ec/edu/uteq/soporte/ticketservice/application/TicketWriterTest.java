@@ -4,7 +4,6 @@ import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
 import ec.edu.uteq.soporte.ticketservice.domain.TicketRepository;
 import ec.edu.uteq.soporte.ticketservice.domain.TicketStatus;
 import ec.edu.uteq.soporte.ticketservice.domain.Zone;
-import ec.edu.uteq.soporte.ticketservice.infrastructure.metrics.CrdbMetrics;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,7 +25,7 @@ class TicketWriterTest {
     private TicketRepository ticketRepository;
 
     @Mock
-    private CrdbMetrics crdbMetrics;
+    private TransactionRetryMetrics crdbMetrics;
 
     @Test
     void saveWithRetry_retriesOnceOnSerializableConflictAndIncrementsMetric() {
