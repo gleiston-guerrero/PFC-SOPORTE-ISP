@@ -1,5 +1,6 @@
 """Analisis de las 5 repeticiones de cada escenario de carga (Modulo D / evaluacion ISO 25010,
-Entrega 4, escala reducida por restriccion de tiempo -- ver docs/resultados_iso25010.md).
+Entrega 4, escala reducida por restriccion de tiempo -- ver
+docs/experimentos/evaluacion_iso25010.md).
 
 Metodologia: se descartan la primera y la ultima repeticion (calentamiento/enfriamiento) y se
 calculan media +/- intervalo de confianza del 95% (distribucion t, n=3, df=2) sobre las 3

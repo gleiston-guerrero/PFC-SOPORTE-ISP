@@ -12,12 +12,17 @@
 #   Escenario (i) -- 50 usuarios, 5 minutos:
 #     locust -f tests/load/locustfile.py --host http://localhost:8000 \
 #            --users 50 --spawn-rate 10 --run-time 5m --headless \
-#            --html resultados/locust_escenario1.html --csv resultados/locust_escenario1
+#            --html resultados/locust/locust_escenario1.html --csv resultados/locust/locust_escenario1
 #
 #   Escenario (ii) -- rampa de 0 a 200 en 10 minutos:
 #     locust -f tests/load/locustfile.py --host http://localhost:8000 \
 #            --users 200 --spawn-rate 0.33 --run-time 10m --headless \
-#            --html resultados/locust_escenario2.html --csv resultados/locust_escenario2
+#            --html resultados/locust/locust_escenario2.html --csv resultados/locust/locust_escenario2
+#
+# (la ruta real que usan las 5 repeticiones de cada escenario esta en
+# docs/experimentos/evaluacion_iso25010.md, que si escribe dentro de resultados/locust/ -- una
+# version anterior de este comentario omitia el subdirectorio "locust/", lo que habria dejado
+# la salida fuera de donde SHA256SUMS.txt y analizar_resultados.py la esperan)
 #     (spawn-rate 0.33 usuario/seg ~ 200 usuarios repartidos en 600s, la "rampa progresiva")
 #
 # Requiere una cuenta CLIENTE ya creada (cliente@test.com / Passw0rd!, la que crea
