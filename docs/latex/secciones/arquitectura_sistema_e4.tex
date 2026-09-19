@@ -73,10 +73,44 @@ versionada en \texttt{docs/diagrams/c4-nivel3-componentes.md}— nombra cada caj
 árbol de \texttt{services/svc-principal/src/main/java/.../ticketservice/}: los seis patrones GoF
 de la Sección~\ref{sec:gof-e4} son visibles aquí, no solo enumerados en prosa.
 
+La imagen fuente (\texttt{docs/diagrams/c4-nivel3-componentes.png}) es extremadamente alargada
+(1109×4348~px, relación de aspecto 1:4) porque Mermaid apila las 27 cajas en una sola columna
+vertical. Encajada como una sola figura en una página vertical (con la altura acotada al 85\,\% de la
+altura de página), el ancho resultante quedaba en apenas ~5~cm, con el texto de cada caja en torno a 1,4~pt
+impreso —ilegible, aunque la imagen en sí no perdiera contenido— (hallazgo de una revisión
+externa). Se divide aquí en cuatro franjas horizontales iguales, de arriba a abajo, sin recortar
+ni omitir ninguna caja, dispuestas en una cuadrícula de $2\times2$ para que cada franja quede
+acotada por el ancho de página (el lado que faltaba aprovechar) en vez de por la altura:
+
 \begin{figure}[H]
 \centering
-\includegraphics[width=\textwidth,height=0.85\textheight,keepaspectratio]{../diagrams/c4-nivel3-componentes.png}
-\caption{C4 Nivel 3 — componentes de \texttt{ticket-service}, Entrega 4.}
+\begin{minipage}{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{../diagrams/c4-nivel3-componentes-parte1.png}
+  \\ \footnotesize (a)
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{../diagrams/c4-nivel3-componentes-parte2.png}
+  \\ \footnotesize (b)
+\end{minipage}
+
+\vspace{4pt}
+\begin{minipage}{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{../diagrams/c4-nivel3-componentes-parte3.png}
+  \\ \footnotesize (c)
+\end{minipage}
+\hfill
+\begin{minipage}{0.48\textwidth}
+  \centering
+  \includegraphics[width=\linewidth]{../diagrams/c4-nivel3-componentes-parte4.png}
+  \\ \footnotesize (d)
+\end{minipage}
+\caption{C4 Nivel 3 — componentes de \texttt{ticket-service}, Entrega 4. Mismo diagrama que
+\texttt{c4-nivel3-componentes.png}, dividido en cuatro franjas horizontales (a)--(d), de arriba
+a abajo, para que el texto de cada caja sea legible en la página.}
 \label{fig:c4-nivel3}
 \end{figure}
 
