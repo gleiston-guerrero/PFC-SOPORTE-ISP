@@ -35,10 +35,24 @@ Genera `app/build/outputs/apk/debug/app-debug.apk`.
 
 ## Contra qué backend corre
 
-Por defecto apunta a `10.0.2.2` (así ve el emulador de Android el `localhost` de la máquina
-host) en los puertos reales de `auth-service` (8001) y `ticket-service` (8002) —
-ver `AUTH_BASE_URL`/`TICKETS_BASE_URL` en `app/build.gradle.kts`. Para probar en un dispositivo
-físico, cambiar esas URLs a la IP de LAN del host.
+Por defecto apunta a `http://10.0.2.2:8000/` (así ve el emulador de Android el `localhost` de la
+máquina host) a través del API Gateway único (puerto 8000, ver `services/api-gateway`) — desde
+la Entrega 4 ningún cliente le habla directo a `auth-service`/`ticket-service` en sus puertos
+8001/8002. La URL se define en `AUTH_BASE_URL`/`TICKETS_BASE_URL`
+(`app/build.gradle.kts`), leída de la propiedad `mobileBaseUrl` de `local.properties` (no
+versionado) si existe, o `10.0.2.2` si no.
+
+**Para un dispositivo físico:**
+
+- Con `adb reverse tcp:8000 tcp:8000` (USB, recomendado — el mismo mecanismo que usa
+  `apps/mobile/README.md` para las capturas reales de pantalla): agregar
+  `mobileBaseUrl=http://127.0.0.1:8000/` a `local.properties`. **No** la IP de LAN del host ni
+  `10.0.2.2` — ninguna de las dos funciona con `adb reverse`, solo `127.0.0.1` (el propio
+  dispositivo, con el puerto reenviado por USB). Editar `local.properties` sin declarar el
+  cambio en ningún otro lado hacía que un APK de prueba no fuera reproducible desde un clon
+  limpio (Entregable 11 de la guía de cierre); ahora es una propiedad documentada, no una
+  edición muda del código fuente.
+- Sin `adb reverse`, en la misma red Wi-Fi que el host: `mobileBaseUrl=http://<IP-LAN-del-host>:8000/`.
 
 ## Estado del módulo
 

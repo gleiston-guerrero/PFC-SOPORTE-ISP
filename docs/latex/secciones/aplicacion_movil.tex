@@ -94,7 +94,15 @@ La pantalla de detalle muestra además el identificador completo del ticket en u
 texto seleccionable —una decisión deliberada para poder demostrar, en una presentación en vivo,
 que la aplicación móvil y la aplicación web leen y escriben sobre el mismo backend real: cerrar
 un ticket desde el teléfono y encontrarlo actualizado en la consola web buscando por ese mismo
-identificador (Sección~\ref{sec:web}).
+identificador (Sección~\ref{sec:web}). Esa demostración se ejecutó y quedó versionada
+(Entregable 11 de la guía de cierre): un cierre real desde un dispositivo Android físico, con
+foto y GPS reales, contra el \emph{stack} completo de \emph{Docker Compose}, emparejado con la
+fila resultante en CockroachDB —
+\texttt{docs/evidencias/entregable11\_integracion\_movil\_backend\_20260916.md} documenta el
+procedimiento completo, incluida una limitación real declarada (el \texttt{trace\_id} de la
+línea de \emph{log} capturada no se cruza con un registro de acceso del \emph{gateway}, así que
+el emparejamiento con la captura de pantalla depende de la cercanía temporal, no de una cadena de
+trazas verificable de punta a punta).
 
 \subsection{Pruebas}
 
