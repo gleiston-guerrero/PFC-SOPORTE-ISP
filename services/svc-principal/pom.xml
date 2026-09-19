@@ -232,9 +232,12 @@
                  a la fase test, no a la verify por defecto de JaCoCo, para que corra con el mismo
                  "mvn test" que ya usa el job test-backend del flujo) rompe la construccion si la
                  cobertura de instrucciones del modulo cae por debajo del 70% declarado como
-                 objetivo. Verificado subiendo el umbral a un valor por encima de la cobertura
-                 real: "mvn test" falla con la razon exacta (instructions covered ratio is X, but
-                 expected minimum is Y). -->
+                 objetivo. Verificado subiendo el umbral a 0.95 (por encima de la cobertura real):
+                 "mvn test" fallo con "Rule violated for bundle ticket-service: instructions
+                 covered ratio is 0.89, but expected minimum is 0.95" (revision externa: el
+                 unico intento anterior de esta verificacion que quedo en el historial fallo por
+                 "Non-parseable POM", un error de configuracion, no por la cobertura; esta vez
+                 se corrio hasta el final y se revirtio el umbral a 0.70 despues). -->
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
