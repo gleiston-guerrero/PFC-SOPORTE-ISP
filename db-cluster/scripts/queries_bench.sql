@@ -10,7 +10,7 @@ SET DATABASE = ticket_db;
 -- Q1: Lectura por id -- punto de acceso mas comun del sistema (ticket-service
 -- recibe un UUID de ticket sin conocer su fecha_apertura de antemano). Ya no
 -- resuelve dentro de la clave primaria (created_at, id): usa el indice unico
--- secundario tickets_id_key (ver init_db.sql), que evita escanear las 4
+-- secundario tickets_id_key (ver V1__init_ticket_schema.sql), que evita escanear las 4
 -- particiones a costa de un salto extra indice->tabla.
 EXPLAIN ANALYZE
 SELECT * FROM tickets WHERE id = (

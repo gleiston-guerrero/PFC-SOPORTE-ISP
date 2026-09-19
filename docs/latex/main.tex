@@ -78,9 +78,27 @@ Jeremy Alexis \'Alvarez P\'arraga\\[1em]
 
 \date{Septiembre 2026}
 
+% Entregable 26 de la guia de cierre ("Separacion entre documento vivo y documento congelado"):
+% este documento (docs/latex/main.tex) es la fuente viva, recompilada en cada push a main, y no
+% puede citar su propio commit sin un problema de huevo-y-gallina (el commit que la crea no
+% existe todavia mientras se compila). scripts/congelar_manuscrito.sh reemplaza este mensaje por
+% uno especifico de commit+fecha en la copia congelada que produce bajo
+% docs/entregas-congeladas/entrega4/ -- ver ese directorio para la version citable de esta
+% entrega, no este PDF.
+\newcommand{\avisoversion}{Documento vivo: recompilado automáticamente en cada \emph{push} a
+\texttt{main}, sin commit ni fecha propios (ver el historial de \texttt{git} de
+\texttt{docs/latex/} para saber a qué versión corresponde una compilación dada). Para citar una
+versión específica y verificable de esta entrega, use la instantánea congelada en
+\texttt{docs/entregas-congeladas/entrega4/} (atada a un commit exacto, con fecha y huella
+SHA-256 en su propio \texttt{README.md}).}
+
 \begin{document}
 
 \maketitle
+
+\begin{center}
+\fbox{\parbox{0.85\textwidth}{\small \avisoversion}}
+\end{center}
 
 \input{secciones/resumen_e4}
 

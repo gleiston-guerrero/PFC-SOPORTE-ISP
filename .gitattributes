@@ -1,3 +1,10 @@
+# Fe de erratas (Entregable 40 de la guia de cierre): el mensaje del commit 8d735d8
+# ("fix(openapi): normaliza el contrato a finales de linea LF") anuncia una normalizacion que
+# en realidad no ocurrio -- el blob de docs/api/openapi.yaml ya tenia 0 finales CRLF antes de
+# ese commit, asi que el diff quedo vacio. No se reescribe el historial (8d735d8 ya esta
+# publicado); esta nota documenta la discrepancia en vez de dejar el mensaje sin corregir en
+# ningun lugar versionado, tal como senalo una revision externa del repositorio.
+#
 # Regla general de captura: cualquier archivo que Git detecte como texto y que no este
 # cubierto por una regla explicita mas abajo se normaliza a LF al entrar al historial. Sin
 # esta linea, una extension nueva entra al repositorio sin atributo y vuelve a quedar sujeta

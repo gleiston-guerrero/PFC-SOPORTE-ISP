@@ -2,4 +2,4 @@
 
 --- Consulta directa a CockroachDB (ticket_db.tickets) ---
 id	status	resolved_at	evidence_latitude	evidence_longitude	photo_bytes
-0fb2c5be-3e80-46aa-af79-f2aa597f8e4a	RESUELTO	2026-09-16 05:22:23.950271+00	-1.0123905	-79.4651736	2417037
+0fb2c5be-3e80-46aa-af79-f2aa597f8e4a	RESUELTO	2026-09-16 05:22:23.950271+00	0.0000000	0.0000000	2417037

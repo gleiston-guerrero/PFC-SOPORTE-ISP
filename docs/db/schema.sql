@@ -1,13 +1,17 @@
 -- ============================================================================
 -- docs/db/schema.sql
--- Esquema desplegado del sistema (equipo ACC — Soporte Técnico ISP), consolidado
--- en un solo archivo por conveniencia de lectura. Este archivo NO se ejecuta —
--- es una copia textual, sin cambios, de las tres migraciones Flyway versionadas
--- que sí se ejecutan y que siguen siendo la fuente de verdad (Entregable 5 de la
--- guía de cierre; antes eran guiones sueltos de db-cluster/scripts/, no
--- versionados como cambios):
---   - services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql
---     (ticket_db, aplicado por ticket-service al arrancar)
+-- Esquema desplegado del sistema (equipo ACC — Soporte Técnico ISP), consolidado en un solo
+-- archivo por conveniencia de lectura. Este archivo NO se ejecuta -- es una vista del estado
+-- FINAL del esquema tal como queda tras aplicar, en orden, todas las migraciones Flyway
+-- versionadas que sí se ejecutan y que siguen siendo la fuente de verdad (Entregable 5 de la
+-- guía de cierre; antes eran guiones sueltos de db-cluster/scripts/, no versionados como
+-- cambios). No es una copia textual de ningún archivo individual: en particular, la tabla
+-- "tickets" de más abajo integra las columnas que V3 le agrega a la tabla que V1 crea
+-- (evidence_photo/evidence_latitude/evidence_longitude), porque este archivo documenta el
+-- esquema final, no cada paso por separado.
+--   - services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql +
+--     V2__configure_ticket_zone.sql (política de replicación, no un cambio de columnas) +
+--     V3__add_close_evidence.sql (ticket_db, aplicadas por ticket-service al arrancar)
 --   - services/auth-service/src/main/resources/db/migration/V1__init_auth_schema.sql
 --     (auth_db, aplicado por auth-service al arrancar)
 --   - services/report-service/src/main/resources/db/migration/V1__init_report_schema.sql

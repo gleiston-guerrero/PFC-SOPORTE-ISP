@@ -136,19 +136,24 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
   `enumitem`, `hyphenat`, `seqsplit`, entre otros). Si no se tiene TeX Live instalado localmente,
   se puede usar la imagen Docker `texlive/texlive:latest` (la etiqueta `latest-medium` **no**
   incluye `hyphenat`/`seqsplit` y falla con `! LaTeX Error: File 'hyphenat.sty' not found`)
-  montando `docs/` (no solo `docs/latex/`, porque las figuras del manuscrito referencian
-  `../diagrams/*.png` con ruta relativa) y ejecutando los mismos cuatro comandos dentro del
-  contenedor. Verificado: `docker run --rm -v "$(pwd)/docs:/docs" -w /docs/latex
-  texlive/texlive:latest bash -c "pdflatex ... && bibtex main && pdflatex ... && pdflatex ..."`
-  compila las 67 páginas sin errores.
+  montando la **raíz del repositorio** (no solo `docs/`: las figuras de
+  `aplicacion_web.tex`/`aplicacion_movil.tex` referencian
+  `../../release/screenshots/*.png`, fuera de `docs/` — montar solo `docs/` pierde esas 6
+  figuras y compila 65 páginas en vez de 67, con `! Package pdftex.def Error: File ... not
+  found`, un error real que una versión anterior de esta instrucción no reproducía) y
+  ejecutando los mismos cuatro comandos dentro del contenedor. Verificado:
+  `docker run --rm -v "$(pwd):/repo" -w /repo/docs/latex texlive/texlive:latest bash -c
+  "pdflatex ... && bibtex main && pdflatex ... && pdflatex ..."` compila las 67 páginas sin
+  errores, igual que la compilación sin Docker.
 - **Documento vivo vs. documento congelado (Entregable 26 de la guía de cierre).** `docs/latex/`
   de arriba es el documento vivo: se sigue editando y su PDF se recompila en cada `push` a `main`
-  (tanto en CI como en el [Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)), así que
-  descargarlo hoy y mañana puede dar bytes distintos sin ningún aviso de cuál commit corresponde a
-  cuál. [`docs/entregas-congeladas/entrega4/`](docs/entregas-congeladas/entrega4/) es la instantánea
-  congelada de esta entrega: un PDF fechado y atado a un commit exacto (`50024c4`, 2026-09-15) que
-  no se vuelve a recompilar ni a sobrescribir, para poder citar una versión verificable en vez de
-  "el PDF de hoy".
+  (tanto en CI como en el [Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)),
+  y lleva un recuadro bajo el título que lo dice explícitamente en vez de aparentar una versión
+  fija. [`docs/entregas-congeladas/entrega4/`](docs/entregas-congeladas/entrega4/) es la
+  instantánea congelada de esta entrega: un PDF con su propio aviso de commit y fecha impreso
+  dentro del documento (no solo en el nombre del archivo), que no se vuelve a recompilar ni a
+  sobrescribir, generado de forma reproducible con `scripts/congelar_manuscrito.sh` — su
+  `README.md` incluye la huella SHA-256 completa para verificarlo.
 - Esquema de base de datos consolidado (referencia de lectura; las migraciones Flyway
   versionadas que realmente se ejecutan siguen en `db/migration/` de cada servicio con
   persistencia — auth-service, report-service, svc-principal): [`docs/db/schema.sql`](docs/db/schema.sql)
@@ -168,9 +173,12 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
     escribe en esta carpeta (`verdad_campo_manual.csv`), para provocar una única avería a
     mano sin correr la campaña completa.
 - **Manifiestos de sumas de verificación (SHA-256) de los datos crudos.** Cada carpeta de
-  resultados lleva su propio `SHA256SUMS.txt`, en el formato que entiende `sha256sum -c`, y
-  hay un tercero para el instalable móvil. Se generan con
-  `python experimentos/generar_checksums.py` y se verifican así, desde un clon limpio:
+  resultados lleva su propio `SHA256SUMS.txt`, en el formato que entiende `sha256sum -c`, y hay
+  un tercero para el instalable móvil. Los dos primeros (`experimentos/resultados/`,
+  `resultados/locust/`) se generan con `python experimentos/generar_checksums.py`; el tercero
+  (`release/apk/`) no lo genera ese guion —lo genera la CI, en el paso `sha256sum` del trabajo
+  `build-mobile-apk` de `.github/workflows/ci-cd.yml`, junto al APK y el manuscrito en cada
+  publicación. Los tres se verifican así, desde un clon limpio:
   ```bash
   cd experimentos/resultados && sha256sum -c SHA256SUMS.txt && cd -
   cd resultados/locust      && sha256sum -c SHA256SUMS.txt && cd -

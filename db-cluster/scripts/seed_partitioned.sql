@@ -1,7 +1,8 @@
 -- seed_partitioned.sql
 -- Carga de datos de ejemplo distribuidos a lo largo de todo 2026 para que las 4
--- particiones trimestrales de "tickets" (ver init_db.sql, PARTITION BY RANGE
--- (created_at)) reciban filas de verdad -- 150000 filas espaciadas cada 210
+-- particiones trimestrales de "tickets" (ver services/svc-principal/.../db/migration/
+-- V1__init_ticket_schema.sql, PARTITION BY RANGE (created_at)) reciban filas de verdad -- 150000
+-- filas espaciadas cada 210
 -- segundos (3.5 min) desde el 1 de enero cubren aproximadamente los 4 trimestres
 -- del anio. El volumen (150000 > 10^5) cumple el minimo del Modulo D de la Guia
 -- de Entrega 3 (prueba de tolerancia a fallos, D2.2).
@@ -20,7 +21,7 @@ INSERT INTO technicians (full_name, zone, specialty) VALUES
 -- ~40% centro, ~30% norte, ~30% sur (zone ya no es la clave de fragmentacion,
 -- pero se mantiene la misma distribucion realista para los filtros por zona del
 -- RBAC de TECNICO y los reportes). created_at se espacia cada 210 segundos desde
--- el 1 de enero de 2026 para cubrir los 4 trimestres definidos en init_db.sql.
+-- el 1 de enero de 2026 para cubrir los 4 trimestres definidos en V1__init_ticket_schema.sql.
 INSERT INTO tickets (created_at, zone, client_id, category, priority, status, description, sla_deadline)
 SELECT
     TIMESTAMPTZ '2026-01-01 00:00:00+00' + (i * INTERVAL '210 seconds'),

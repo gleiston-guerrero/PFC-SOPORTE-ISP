@@ -1,8 +1,27 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
     id("com.google.devtools.ksp")
 }
+
+// Entregable 11 de la guia de cierre: la URL fija http://10.0.2.2:8000/ solo funciona en el
+// emulador (es el alias que el emulador usa para el localhost del host). Contra un dispositivo
+// fisico con "adb reverse tcp:8000 tcp:8000" hace falta http://127.0.0.1:8000/ -- no la IP de
+// LAN del host, como decia el comentario de mas abajo hasta esta entrega, ni el alias del
+// emulador. Antes, probar contra un dispositivo fisico exigia editar este archivo a mano (sin
+// versionar el cambio, asi que un APK asi no se podia reproducir desde un clon limpio). Ahora
+// se lee de local.properties (no versionado, igual que sdk.dir), con el mismo valor de siempre
+// como respaldo si no se define nada.
+val localProperties = Properties().apply {
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        FileInputStream(localPropertiesFile).use { load(it) }
+    }
+}
+val mobileBaseUrl: String = (localProperties.getProperty("mobileBaseUrl") ?: "http://10.0.2.2:8000/")
 
 android {
     namespace = "ec.edu.uteq.soporte.mobile"
@@ -18,14 +37,17 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Host desde el que el emulador de Android alcanza el localhost de esta maquina.
-        // En un dispositivo fisico hay que reemplazar 10.0.2.2 por la IP de LAN del host.
-        // Desde la Entrega 4 (Modulo B/D4.1) ambos clientes pasan por el API Gateway unico
-        // (services/api-gateway, puerto 8000) en vez de hablarle directo a cada
-        // microservicio -- las rutas de AuthApi/TicketApi ya incluyen "api/v1/..." completo,
-        // asi que el gateway las enruta sin reescritura.
-        buildConfigField("String", "AUTH_BASE_URL", "\"http://10.0.2.2:8000/\"")
-        buildConfigField("String", "TICKETS_BASE_URL", "\"http://10.0.2.2:8000/\"")
+        // Por defecto, 10.0.2.2 es el alias con el que el EMULADOR de Android alcanza el
+        // localhost del host. Para un dispositivo fisico con "adb reverse tcp:8000 tcp:8000"
+        // hace falta 127.0.0.1; para un dispositivo fisico en la misma red sin adb reverse,
+        // la IP de LAN del host. Se define agregando "mobileBaseUrl=http://<host>:8000/" a
+        // local.properties (no versionado) -- ver apps/mobile/README.md. Desde la Entrega 4
+        // (Modulo B/D4.1) ambos clientes pasan por el API Gateway unico (services/api-gateway,
+        // puerto 8000) en vez de hablarle directo a cada microservicio -- las rutas de
+        // AuthApi/TicketApi ya incluyen "api/v1/..." completo, asi que el gateway las enruta
+        // sin reescritura.
+        buildConfigField("String", "AUTH_BASE_URL", "\"$mobileBaseUrl\"")
+        buildConfigField("String", "TICKETS_BASE_URL", "\"$mobileBaseUrl\"")
     }
 
     buildTypes {
