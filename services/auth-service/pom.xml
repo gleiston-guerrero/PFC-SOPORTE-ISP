@@ -118,7 +118,35 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!-- Entregable 5 de la guia de cierre: ninguna prueba de este modulo aplicaba
+             V1__init_auth_schema.sql contra un CockroachDB real, solo el arranque del stack
+             completo en el job "integration" del CI; si esa migracion se rompiera, ninguna
+             prueba de auth-service lo detectaria por su cuenta. Mismo patron que
+             services/svc-principal (Testcontainers, no un cluster local ya corriendo). -->
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>testcontainers</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.testcontainers</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <scope>test</scope>
+        </dependency>
     </dependencies>
+
+    <dependencyManagement>
+        <dependencies>
+            <dependency>
+                <groupId>org.testcontainers</groupId>
+                <artifactId>testcontainers-bom</artifactId>
+                <version>1.19.7</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+        </dependencies>
+    </dependencyManagement>
 
     <build>
         <finalName>auth-service</finalName>
