@@ -38,7 +38,13 @@ Tabla~\ref{tab:esquema-tickets} detalla las columnas relevantes para la polític
 El fragmento del esquema en el Listado~\ref{lst:init-db} muestra la definición efectiva de la
 tabla \texttt{tickets} tal como se aplica en la migración Flyway
 \texttt{services/svc-principal/.../db/migration/V1\_\_init\_ticket\_schema.sql} (Entregable 5
-de la guía de cierre; antes era un guion suelto sin versionar).
+de la guía de cierre; antes era un guion suelto sin versionar). La verificación de que las
+migraciones se aplican de verdad no se limita a \texttt{ticket\_db}: además de
+\texttt{TicketRepositoryIntegrationTest} (svc-principal), \texttt{auth-service} y
+\texttt{report-service} tienen su propio \texttt{FlywayMigrationIntegrationTest} —cada uno
+levanta un CockroachDB real vía Testcontainers, confirma que \texttt{flyway\_schema\_history}
+registra la migración V1 como exitosa, y consulta su tabla principal—, en vez de depender solo
+del arranque del \emph{stack} completo en el trabajo \texttt{integration} del flujo de CI.
 
 \begin{lstlisting}[language=SQL, caption={Fragmentación por rango de \texttt{tickets} (extracto de \texttt{V1\_\_init\_ticket\_schema.sql})}, label={lst:init-db}]
 CREATE TABLE IF NOT EXISTS tickets (
