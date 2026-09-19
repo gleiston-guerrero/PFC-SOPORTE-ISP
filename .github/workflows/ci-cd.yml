@@ -46,15 +46,15 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: apps/mobile - normalizar y habilitar gradlew
-        # gradlew se committeo desde Windows con 2 problemas: (1) sin el bit ejecutable de
-        # Unix -- "exit code 126: Permission denied" -- y (2) con terminadores de linea CRLF,
-        # que corrompen el script de shell de forma sutil (el interprete termina confundiendo
-        # sus propios argumentos de memoria, ej. "-Xmx64m", con el nombre de una clase a
-        # ejecutar -- "Could not find or load main class ""-Xmx64m""). Se corrigen los dos
-        # aqui mismo, sin depender de que alguien los arregle en el repo.
+      - name: apps/mobile - habilitar gradlew
+        # gradlew se committeo desde Windows sin el bit ejecutable de Unix -- "exit code 126:
+        # Permission denied" -- se corrige aqui mismo, sin depender de que alguien lo arregle
+        # en el repo. El problema hermano (CRLF, que corrompia el script de forma sutil: el
+        # interprete confundia sus propios argumentos de memoria, ej. "-Xmx64m", con el nombre
+        # de una clase a ejecutar) ya no puede ocurrir -- gradlew tiene "eol=lf" fijado en
+        # .gitattributes (Entregable 40 de la guia de cierre), asi que el "sed -i 's/\r$//'"
+        # que corria aqui antes quedaba operando siempre sobre un archivo ya en LF.
         run: |
-          sed -i 's/\r$//' apps/mobile/gradlew
           chmod +x apps/mobile/gradlew
 
       - name: apps/mobile - android lint
@@ -182,9 +182,8 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: apps/mobile - normalizar y habilitar gradlew
+      - name: apps/mobile - habilitar gradlew
         run: |
-          sed -i 's/\r$//' apps/mobile/gradlew
           chmod +x apps/mobile/gradlew
 
       - name: Pruebas unitarias de ViewModel (JVM)
@@ -323,9 +322,8 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: apps/mobile - normalizar y habilitar gradlew
+      - name: apps/mobile - habilitar gradlew
         run: |
-          sed -i 's/\r$//' apps/mobile/gradlew
           chmod +x apps/mobile/gradlew
 
       - name: Compilar APK debug
