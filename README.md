@@ -143,12 +143,13 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
   compila las 67 páginas sin errores.
 - **Documento vivo vs. documento congelado (Entregable 26 de la guía de cierre).** `docs/latex/`
   de arriba es el documento vivo: se sigue editando y su PDF se recompila en cada `push` a `main`
-  (tanto en CI como en el [Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)), así que
-  descargarlo hoy y mañana puede dar bytes distintos sin ningún aviso de cuál commit corresponde a
-  cuál. [`docs/entregas-congeladas/entrega4/`](docs/entregas-congeladas/entrega4/) es la instantánea
-  congelada de esta entrega: un PDF fechado y atado a un commit exacto (`50024c4`, 2026-09-15) que
-  no se vuelve a recompilar ni a sobrescribir, para poder citar una versión verificable en vez de
-  "el PDF de hoy".
+  (tanto en CI como en el [Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)),
+  y lleva un recuadro bajo el título que lo dice explícitamente en vez de aparentar una versión
+  fija. [`docs/entregas-congeladas/entrega4/`](docs/entregas-congeladas/entrega4/) es la
+  instantánea congelada de esta entrega: un PDF con su propio aviso de commit y fecha impreso
+  dentro del documento (no solo en el nombre del archivo), que no se vuelve a recompilar ni a
+  sobrescribir, generado de forma reproducible con `scripts/congelar_manuscrito.sh` — su
+  `README.md` incluye la huella SHA-256 completa para verificarlo.
 - Esquema de base de datos consolidado (referencia de lectura; las migraciones Flyway
   versionadas que realmente se ejecutan siguen en `db/migration/` de cada servicio con
   persistencia — auth-service, report-service, svc-principal): [`docs/db/schema.sql`](docs/db/schema.sql)
