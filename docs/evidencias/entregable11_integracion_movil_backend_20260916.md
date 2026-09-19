@@ -91,6 +91,21 @@ una prueba dedicada, `AuthGatewayFilterTest.unaPeticionAutorizadaEscribeLaLineaD
 Esta captura del 16/09 es anterior a ese cambio, así que no lo incluye; una repetición futura de
 este mismo procedimiento sí lo tendría.
 
+## Parte web: el mismo ticket, encontrado actualizado en la consola (18/09)
+
+Último punto pendiente: el manuscrito prometía "cerrar un ticket desde el teléfono y encontrarlo
+actualizado en la consola web buscando por ese mismo identificador", y esta evidencia no lo
+mostraba. Captura real del 18/09, sesión de administrador en `apps/web` contra el mismo backend
+(`docker compose`, *stack* corriendo en vivo):
+
+![Consola web mostrando el mismo ticket del cierre en sitio, en estado Resuelto](entregable11_web_consola_ticket_resuelto_20260918.jpg)
+
+El ticket con descripción "Sin senal de internet -- Router sin luz de enlace desde ayer, prueba
+entregable 11" —el mismo creado y cerrado en la captura móvil del 16/09, zona
+`QUEVEDO_NORTE`, técnico `Tecnico Uno`— aparece en la consola de operadores con estado
+**Resuelto**, confirmando que el efecto del cierre en sitio desde el móvil persiste y es visible
+del lado web, no solo en la base de datos vía SQL directo.
+
 ## Por qué esto cumple lo pedido
 
 - **Acción real desde el móvil con red**: no es un mock ni una llamada `curl` simulando al móvil —
