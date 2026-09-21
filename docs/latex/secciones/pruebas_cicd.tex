@@ -15,7 +15,7 @@ más una capa de carga, cada una respondiendo una pregunta que las demás no pue
 \toprule
 \textbf{Capa} & \textbf{Herramienta} & \textbf{Pregunta que responde} & \textbf{Resultado} \\
 \midrule
-Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 320/320 backend (5 servicios Java + Node + Python), 126/126 web, 33/33 móvil \\
+Unitaria & JUnit 5 / Vitest / JUnit Android & ¿Esta clase, aislada, hace lo que dice? & 309/309 backend (5 servicios Java + Node + Python), 126/126 web, 33/33 móvil \\
 Integración & Testcontainers & ¿Funciona contra un CockroachDB real, no un \emph{mock}? & 6/6: \texttt{TicketRepositoryIntegrationTest} (svc-principal) + \texttt{FlywayMigrationIntegrationTest} (auth-service, report-service) \\
 Contrato & Pact (consumidor + proveedor) & ¿El backend sigue la forma exacta que el cliente espera? & 2/2 consumidor, 2/2 proveedor \\
 E2E & Playwright / Compose Testing & ¿Todo el camino, navegador real incluido, funciona? & 9/9 en Chromium+Firefox+WebKit \\
@@ -24,19 +24,24 @@ Carga & Locust & ¿Aguanta concurrencia real? & Sección~\ref{sec:iso25010} \\
 \end{tabular}
 \end{table}
 
-Cada cifra de la fila «Unitaria» se obtiene ejecutando la suite correspondiente y restando las
-pruebas que otra fila de esta misma tabla ya cuenta por separado, para que las tres filas sean
-poblaciones disjuntas y la suma de la pirámide no duplique nada: \texttt{mvn test} dentro de
-\texttt{services/auth-service}, \texttt{services/svc-principal}, \texttt{services/report-service},
-\texttt{services/api-gateway} y \texttt{services/telemetry-service} para los cinco servicios Java
-da 65, 167, 39, 8 y 16 pruebas respectivamente (325 en total); de las 167 de \texttt{svc-principal}
-se restan las 2 de \texttt{TicketRepositoryIntegrationTest} (Testcontainers, ya contadas en la
-fila «Integración») y de las 65+39 de auth+report se restan las 2+2 de
-\texttt{FlywayMigrationIntegrationTest} (mismo motivo), dejando 320 pruebas Java puramente
-unitarias; \texttt{npm test} dentro de \texttt{services/notification-service} añade 15 y
-\texttt{pytest} dentro de \texttt{services/ai-service} añade 16 (ninguna de las dos se solapa con
-otra fila) — total backend, 320. \texttt{npm test} (\texttt{vitest run}) dentro de
-\texttt{apps/web} da 128, de las que se restan las 2 de consumidor Pact
+Cada cifra de la fila «Unitaria» se obtiene ejecutando \texttt{mvn clean test} —con
+\texttt{clean}: un \texttt{mvn test} sobre un \texttt{target/} ya compilado en una corrida
+anterior puede arrastrar \emph{surefire-reports} de clases que ya no existen o quedar a medio
+recompilar, y una revisión propia posterior encontró exactamente ese error en una cifra
+publicada antes en esta misma sección (167 en vez de las 156 reales de \texttt{svc-principal};
+se corrige aquí)— y restando las pruebas que otra fila de esta misma tabla ya cuenta por
+separado, para que las tres filas sean poblaciones disjuntas y la suma de la pirámide no
+duplique nada: dentro de \texttt{services/auth-service}, \texttt{services/svc-principal},
+\texttt{services/report-service}, \texttt{services/api-gateway} y
+\texttt{services/telemetry-service} para los cinco servicios Java da 65, 156, 39, 8 y 16 pruebas
+respectivamente (284 en total); de las 156 de \texttt{svc-principal} se restan las 2 de
+\texttt{TicketRepositoryIntegrationTest} (Testcontainers, ya contadas en la fila «Integración») y
+de las 65+39 de auth+report se restan las 2+2 de \texttt{FlywayMigrationIntegrationTest} (mismo
+motivo), dejando 309 pruebas Java puramente unitarias; \texttt{npm test} dentro de
+\texttt{services/notification-service} añade 15 y \texttt{pytest} dentro de
+\texttt{services/ai-service} añade 16 (ninguna de las dos se solapa con otra fila) — total
+backend, 309. \texttt{npm test} (\texttt{vitest run}) dentro de \texttt{apps/web} da 128, de las
+que se restan las 2 de consumidor Pact
 (\texttt{apps/web/tests/contract/ticketsApi.pact.test.ts}, ya contadas en «Contrato»), quedando
 126. \texttt{./gradlew :app:testDebugUnitTest} dentro de \texttt{apps/mobile} da 33, sin
 solapamiento. Los comandos son los mismos, sin variación, que ejecutan
@@ -44,11 +49,11 @@ solapamiento. Los comandos son los mismos, sin variación, que ejecutan
 se documenta aquí mismo, con cada cifra bruta y cada descuento explícito, en vez de publicar el
 número crudo del comando y dejar que el lector adivine qué se solapa.
 
-Sumando las tres filas ya disjuntas: 320 (Unitaria backend) + 126 (Unitaria web) + 33 (Unitaria
+Sumando las tres filas ya disjuntas: 309 (Unitaria backend) + 126 (Unitaria web) + 33 (Unitaria
 móvil) + 6 (Integración: \texttt{TicketRepositoryIntegrationTest} + las dos
 \texttt{FlywayMigrationIntegrationTest}) + 4 (Contrato: 2 consumidor + 2 proveedor, este último
 omitido por \texttt{mvn test} salvo con \texttt{-Dpact.verifier.publishResults=true} y que por eso
-no se restó de ninguna cifra de \texttt{svc-principal}) da \textbf{489 pruebas automatizadas
+no se restó de ninguna cifra de \texttt{svc-principal}) da \textbf{478 pruebas automatizadas
 distintas} en las tres capas inferiores de la pirámide, sin ninguna contada dos veces.
 
 \texttt{api-gateway} y \texttt{telemetry-service} tenían Dockerfile y pruebas JUnit reales en el
