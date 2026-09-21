@@ -150,6 +150,32 @@ copia que pudiera desincronizarse de la migración real.
 ALTER TABLE tickets CONFIGURE ZONE USING num_replicas = 3;
 \end{lstlisting}
 
+\subsection{Evolución del esquema: cierre en sitio (\texttt{V3})}
+
+El esquema de \texttt{tickets} no quedó congelado en \texttt{V1}. La capacidad de cierre en sitio
+del entregable 10 de la guía de cierre (Sección~\ref{sec:movil}) requirió tres columnas
+adicionales, añadidas por una tercera migración Flyway posterior,
+\texttt{V3\_\_add\_close\_evidence.sql}, que corre después de \texttt{V1} y \texttt{V2} sin
+modificar ninguna de las dos:
+
+\begin{lstlisting}[language=SQL, caption={Columnas de evidencia del cierre en sitio (\texttt{V3\_\_add\_close\_evidence.sql})}, label={lst:v3-evidence}]
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS evidence_photo BYTES;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS evidence_latitude FLOAT8;
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS evidence_longitude FLOAT8;
+\end{lstlisting}
+
+Las tres son nulables por diseño: solo el cierre por un técnico vía la app móvil las llena (con la
+foto codificada en Base64 sobre el transporte HTTP y decodificada a \texttt{BYTES} en el servidor,
+Sección~\ref{sec:movil}); un \texttt{ADMIN} puede seguir resolviendo un ticket sin pasar
+por el móvil, y el resto de las transiciones de estado no las toca. No participan de la
+fragmentación ni de la política de replicación de las secciones anteriores —ninguna es la columna
+de partición ni cambia el factor de réplicas—, así que \texttt{V3} extiende el esquema físico sin
+alterar ninguna de las tres propiedades de corrección verificadas más arriba para \texttt{V1}, ni
+la política de \texttt{V2}. Reconstruir el esquema completo de \texttt{ticket\_db} desde cero es,
+por tanto, aplicar las tres migraciones en orden (\texttt{V1} → \texttt{V2} → \texttt{V3}) contra
+una base vacía —el procedimiento exacto, verificado contra un clúster real, está en
+\texttt{db-cluster/README.md}—, no una migración única ni un volcado de esquema independiente.
+
 \subsection{Trade-offs aceptados}
 
 El rediseño no es gratuito: las consultas filtradas por zona —el filtro más frecuente en la

@@ -141,12 +141,23 @@ nada sobre ellas.
 
 ## 5. Mantenibilidad — cobertura de pruebas (JaCoCo)
 
-Ejecutado con `mvn test -Pcoverage` (perfil ya existente en `services/svc-principal/pom.xml`).
-Solo `svc-principal` tiene JaCoCo configurado en este momento (`auth-service`, `report-service` y
-`api-gateway` no tienen el plugin agregado a su `pom.xml`) — se reporta lo que existe, sin
-inventar un número para los otros tres. El perfil `coverage` excluye explícitamente el código
-generado automáticamente por protobuf/grpc-java a partir de `telemetry.proto` (boilerplate
-mecánico sin lógica propia, que ninguna convención de pruebas exige cubrir a mano):
+> **Nota de vigencia**: esta sección quedó fijada a la corrida del 2026-08-24 citada en la
+> cabecera de este documento — no se vuelve a ejecutar en cada entrega, a diferencia de la
+> Sección de Pruebas del manuscrito (`docs/latex/secciones/pruebas_cicd.tex`), que sí se
+> recalcula contra el código actual en cada corrección. Las cifras de cobertura
+> **vigentes y verificadas** son las del manuscrito (96.7 % líneas / 89.1 % instrucciones /
+> 78.5 % ramas, `docs/evidencias/jacoco-svc-principal/`); las de abajo son el experimento
+> original, conservadas como registro histórico del punto de partida (81.1 %), no como cifra
+> actual. También, el perfil Maven `coverage` citado abajo ya no existe: desde la corrección
+> del entregable #12 de la guía de cierre, JaCoCo corre siempre con `mvn test`, sin perfil.
+
+Ejecutado con `mvn test -Pcoverage` (perfil que existía en `services/svc-principal/pom.xml` al
+momento de esta corrida, 2026-08-24). Solo `svc-principal` tenía JaCoCo configurado en ese
+momento (`auth-service`, `report-service` y `api-gateway` no tenían el plugin agregado a su
+`pom.xml`) — se reportó lo que existía, sin inventar un número para los otros tres. El perfil
+`coverage` excluía explícitamente el código generado automáticamente por protobuf/grpc-java a
+partir de `telemetry.proto` (boilerplate mecánico sin lógica propia, que ninguna convención de
+pruebas exige cubrir a mano):
 
 | Métrica | Cubierto | Total | % |
 |---|---|---|---|
