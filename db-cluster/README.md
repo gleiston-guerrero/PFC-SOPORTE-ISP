@@ -14,20 +14,32 @@ Verificar en la consola web que los 3 nodos aparecen `live`: http://localhost:80
 
 Desde el Entregable 5 de la guía de cierre, el esquema de `ticket_db` es una migración Flyway
 versionada (`services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql`
-+ `V2__configure_ticket_zone.sql`), no un guion suelto de esta carpeta — normalmente las aplica
-el propio `ticket-service` al arrancar, contra una base que crea `db-init` en
-`docker-compose.yml` antes de que el servicio arranque. Para las pruebas manuales de este
-archivo (cluster levantado aparte, sin los microservicios ni `db-init`), hay que crear la base
-primero: ninguna de las dos migraciones trae `CREATE DATABASE` (eso es responsabilidad de
-`db-init`, no de Flyway), así que cargarlas sin crear `ticket_db` antes las deja en `defaultdb`
-y la migración V2 (que sí hace `SET DATABASE = ticket_db`) fallaría por base inexistente.
++ `V2__configure_ticket_zone.sql` + `V3__add_close_evidence.sql`), no un guion suelto de esta
+carpeta — normalmente las aplica el propio `ticket-service` al arrancar, contra una base que
+crea `db-init` en `docker-compose.yml` antes de que el servicio arranque. Para las pruebas
+manuales de este archivo (cluster levantado aparte, sin los microservicios ni `db-init`), hay
+que crear la base primero: ninguna de las tres migraciones trae `CREATE DATABASE` (eso es
+responsabilidad de `db-init`, no de Flyway), así que cargarlas sin crear `ticket_db` antes las
+deja en `defaultdb` y V2 (`ALTER TABLE tickets CONFIGURE ZONE ...`, sin calificar la base) no
+encontraría la tabla `tickets` fuera de `ticket_db` — no porque V2 cambie de base con una
+sentencia SQL, sino porque `tickets` sin calificar se resuelve contra la base activa de la
+sesión, que fija el flag `--database=` de cada comando, no el script en sí.
 
 ```bash
 cockroach sql --insecure --host=localhost:26257 -e "CREATE DATABASE IF NOT EXISTS ticket_db;"
 cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql
 cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V2__configure_ticket_zone.sql
+cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V3__add_close_evidence.sql
 cockroach sql --insecure --host=localhost:26257 -f scripts/seed_partitioned.sql
 ```
+
+Verificado de extremo a extremo el 21/09 contra un cluster real (`roach1/2/3` del
+`docker-compose.yml` raíz, reutilizando sus volúmenes con datos existentes): las tres
+migraciones corren limpias en secuencia contra una base de prueba desechable
+(`ticket_db_verify_test`, creada y eliminada solo para esta verificación, sin tocar
+`ticket_db`), dejan las 5 tablas esperadas y las 4 particiones trimestrales de `tickets` con
+`num_replicas = 3`, y `SHOW COLUMNS` confirma las tres columnas de evidencia
+(`evidence_photo`, `evidence_latitude`, `evidence_longitude`) que añade V3.
 
 Verificar la partición:
 
