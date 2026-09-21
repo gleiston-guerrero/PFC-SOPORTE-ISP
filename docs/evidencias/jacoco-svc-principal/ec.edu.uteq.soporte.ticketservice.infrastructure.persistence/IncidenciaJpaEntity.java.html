@@ -24,7 +24,7 @@ import java.util.UUID;
 
 /**
  * Mapeo JPA real de Incidencia a las tablas `incidencias` + `incidencia_tickets` de
- * CockroachDB (ver db-cluster/scripts/init_db.sql). Tabla chica y no particionada, a
+ * CockroachDB (ver services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql). Tabla chica y no particionada, a
  * diferencia de `tickets` -- es una agrupacion, no el registro de negocio principal (mismo
  * criterio que la tabla `technicians`). Los ticketIds se mapean con @ElementCollection, sin
  * necesidad de una entidad JPA propia para la tabla de union.

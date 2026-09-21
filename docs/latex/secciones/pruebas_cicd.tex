@@ -689,9 +689,9 @@ de líneas.
 \toprule
 \textbf{Métrica} & \textbf{Cubierto} & \textbf{Total} & \textbf{\%} \\
 \midrule
-Líneas & 692 & 716 & \textbf{96.6\,\%} \\
-Instrucciones & 3392 & 3813 & 89.0\,\% \\
-Ramas & 127 & 162 & 78.4\,\% \\
+Líneas & 705 & 729 & \textbf{96.7\,\%} \\
+Instrucciones & 3461 & 3886 & 89.1\,\% \\
+Ramas & 135 & 172 & 78.5\,\% \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -701,12 +701,14 @@ ejecutadas, instrucciones cuenta a nivel de bytecode (más granular, penaliza m�
 cubrir dentro de una misma línea), y ramas cuenta específicamente las bifurcaciones
 condicionales (\texttt{if}/\texttt{switch}/operadores lógicos de corto circuito) — es la más
 exigente y la que ya superó ampliamente el objetivo del 70\,\% que el proyecto se propuso desde
-la Entrega 3 (78.4\,\%, tras las rondas de pruebas de esta entrega). El paquete
+la Entrega 3 (78.5\,\%, tras las rondas de pruebas de esta entrega). El paquete
 \texttt{infrastructure.security} (filtro y configuración de JWT), que en una revisión externa
 anterior a esta corrección tenía \textbf{0 de 38 líneas cubiertas} —ningún test ejercitaba las
 ramas de token inválido/expirado/ausente directamente sobre esas clases, solo indirectamente vía
 las pruebas de integración HTTP 401/403, que JaCoCo no le atribuye—, quedó cerrado con
-\texttt{AuthGatewayFilterTest} (38 de 38 líneas cubiertas ahora). El paquete que más arrastra la
+\texttt{AuthGatewayFilterTest}; el paquete creció después con la línea de acceso real del
+entregable \#11 (\texttt{AuthGatewayFilter} pasó de 38 a 40 líneas) y sigue en 42 de 42 líneas
+cubiertas hoy. El paquete que más arrastra la
 cifra de ramas hacia abajo hoy es \texttt{domain}, y en concreto una sola clase:
 \texttt{TicketId} (0 de 22 ramas cubiertas). No es una omisión: \texttt{TicketId} es la clave
 compuesta \texttt{@IdClass} de \texttt{Ticket} (\texttt{createdAt}, \texttt{id}), generada por
@@ -717,8 +719,8 @@ clave compuesta en tiempo de ejecución —el punto de acceso real es
 \texttt{TicketRepository.findByTicketId(UUID)}, como documenta el comentario de la clase—, así
 que se declara aquí como brecha conocida y deliberadamente no priorizada, no oculta.
 
-El reporte XML de JaCoCo agrega, a nivel de \texttt{<report>}, un total de 687/711 líneas —no
-las 692/716 que resultan de sumar el CSV fila por fila. La diferencia no es un error de cálculo:
+El reporte XML de JaCoCo agrega, a nivel de \texttt{<report>}, un total de 700/724 líneas —no
+las 705/729 que resultan de sumar el CSV fila por fila. La diferencia no es un error de cálculo:
 cinco archivos fuente (\texttt{AuthGatewayFilter.java}, \texttt{Incidencia.java},
 \texttt{Ticket.java}, \texttt{IncidenciaJpaEntity.java} y \texttt{TicketJpaEntity.java}) contienen
 dos clases cada uno —una externa y una interna o lambda generada por el compilador—, y el CSV
@@ -737,7 +739,11 @@ reporte HTML de JaCoCo que respalda estas tres cifras —no solo una tabla escri
 publicado en \texttt{docs/evidencias/jacoco-svc-principal/}, junto con el archivo crudo
 \texttt{jacoco.csv} del que se recalcularon directamente (no se re-tipearon a mano) y el binario
 crudo (\texttt{jacoco-svc-principal-raw.exec}) para quien quiera regenerarlo o verificarlo con
-otra herramienta.
+otra herramienta. Es la tercera generación de ese directorio: la segunda quedó fechada al
+commit \texttt{31f1ef5} (87 pruebas) y no se regeneró cuando entregables posteriores añadieron
+código y pruebas, así que las cifras publicadas describían un estado anterior aunque el propio
+directorio se presentara como evidencia viva del análisis; se regenera aquí junto con esta
+misma corrección para que texto y evidencia vuelvan a coincidir.
 
 Hasta esta entrega, el objetivo del 70\,\% del Módulo A no se hacía cumplir: JaCoCo vivía en un
 perfil Maven que no se activaba por defecto (\texttt{mvn test -Pcoverage}), el flujo de CI corría

@@ -28,37 +28,37 @@ public class HttpMetricsFilter extends HttpFilter {
 
     private final MeterRegistry registry;
 
-<span class="nc" id="L31">    public HttpMetricsFilter(MeterRegistry registry) {</span>
-<span class="nc" id="L32">        this.registry = registry;</span>
-<span class="nc" id="L33">    }</span>
+<span class="fc" id="L31">    public HttpMetricsFilter(MeterRegistry registry) {</span>
+<span class="fc" id="L32">        this.registry = registry;</span>
+<span class="fc" id="L33">    }</span>
 
     @Override
     protected void doFilter(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-<span class="nc" id="L38">        long start = System.nanoTime();</span>
+<span class="fc" id="L38">        long start = System.nanoTime();</span>
         try {
-<span class="nc" id="L40">            chain.doFilter(request, response);</span>
+<span class="fc" id="L40">            chain.doFilter(request, response);</span>
         } finally {
-<span class="nc" id="L42">            String route = routeOf(request);</span>
-<span class="nc" id="L43">            String method = request.getMethod();</span>
-<span class="nc" id="L44">            String status = String.valueOf(response.getStatus());</span>
+<span class="fc" id="L42">            String route = routeOf(request);</span>
+<span class="fc" id="L43">            String method = request.getMethod();</span>
+<span class="fc" id="L44">            String status = String.valueOf(response.getStatus());</span>
 
-<span class="nc" id="L46">            registry.counter(&quot;http_requests_total&quot;, &quot;route&quot;, route, &quot;method&quot;, method, &quot;status&quot;, status)</span>
-<span class="nc" id="L47">                    .increment();</span>
+<span class="fc" id="L46">            registry.counter(&quot;http_requests_total&quot;, &quot;route&quot;, route, &quot;method&quot;, method, &quot;status&quot;, status)</span>
+<span class="fc" id="L47">                    .increment();</span>
 
-<span class="nc" id="L49">            Timer.builder(&quot;http_request_duration_seconds&quot;)</span>
-<span class="nc" id="L50">                    .tag(&quot;route&quot;, route)</span>
-<span class="nc" id="L51">                    .tag(&quot;method&quot;, method)</span>
-<span class="nc" id="L52">                    .tag(&quot;status&quot;, status)</span>
-<span class="nc" id="L53">                    .publishPercentiles(0.5, 0.95, 0.99)</span>
-<span class="nc" id="L54">                    .register(registry)</span>
-<span class="nc" id="L55">                    .record(System.nanoTime() - start, java.util.concurrent.TimeUnit.NANOSECONDS);</span>
+<span class="fc" id="L49">            Timer.builder(&quot;http_request_duration_seconds&quot;)</span>
+<span class="fc" id="L50">                    .tag(&quot;route&quot;, route)</span>
+<span class="fc" id="L51">                    .tag(&quot;method&quot;, method)</span>
+<span class="fc" id="L52">                    .tag(&quot;status&quot;, status)</span>
+<span class="fc" id="L53">                    .publishPercentiles(0.5, 0.95, 0.99)</span>
+<span class="fc" id="L54">                    .register(registry)</span>
+<span class="fc" id="L55">                    .record(System.nanoTime() - start, java.util.concurrent.TimeUnit.NANOSECONDS);</span>
         }
-<span class="nc" id="L57">    }</span>
+<span class="fc" id="L57">    }</span>
 
     private String routeOf(HttpServletRequest request) {
-<span class="nc" id="L60">        Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);</span>
-<span class="nc bnc" id="L61" title="All 2 branches missed.">        return pattern != null ? pattern.toString() : request.getRequestURI();</span>
+<span class="fc" id="L60">        Object pattern = request.getAttribute(HandlerMapping.BEST_MATCHING_PATTERN_ATTRIBUTE);</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        return pattern != null ? pattern.toString() : request.getRequestURI();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

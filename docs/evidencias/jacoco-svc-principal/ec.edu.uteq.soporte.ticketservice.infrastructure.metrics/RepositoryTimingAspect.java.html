@@ -19,17 +19,17 @@ public class RepositoryTimingAspect {
 
     private final Timer queryDuration;
 
-<span class="nc" id="L22">    public RepositoryTimingAspect(CrdbMetrics crdbMetrics) {</span>
-<span class="nc" id="L23">        this.queryDuration = crdbMetrics.queryDurationTimer();</span>
-<span class="nc" id="L24">    }</span>
+<span class="fc" id="L22">    public RepositoryTimingAspect(CrdbMetrics crdbMetrics) {</span>
+<span class="fc" id="L23">        this.queryDuration = crdbMetrics.queryDurationTimer();</span>
+<span class="fc" id="L24">    }</span>
 
     @Around(&quot;execution(* ec.edu.uteq.soporte.ticketservice.infrastructure.persistence..*(..))&quot;)
     public Object timeQuery(ProceedingJoinPoint joinPoint) throws Throwable {
-<span class="nc" id="L28">        Timer.Sample sample = Timer.start();</span>
+<span class="fc" id="L28">        Timer.Sample sample = Timer.start();</span>
         try {
-<span class="nc" id="L30">            return joinPoint.proceed();</span>
+<span class="fc" id="L30">            return joinPoint.proceed();</span>
         } finally {
-<span class="nc" id="L32">            sample.stop(queryDuration);</span>
+<span class="fc" id="L32">            sample.stop(queryDuration);</span>
         }
     }
 }

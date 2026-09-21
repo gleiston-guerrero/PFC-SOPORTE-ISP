@@ -63,10 +63,10 @@ public class TicketClassificationListener {
 
 <span class="fc" id="L64">        Category category = parseEnumOrNull(Category.class, event.category());</span>
 <span class="fc" id="L65">        Priority priority = parseEnumOrNull(Priority.class, event.priority());</span>
-<span class="pc bpc" id="L66" title="1 of 2 branches missed.">        if (category != null) {</span>
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (category != null) {</span>
 <span class="fc" id="L67">            ticket.setCategory(category);</span>
         }
-<span class="pc bpc" id="L69" title="1 of 2 branches missed.">        if (priority != null) {</span>
+<span class="fc bfc" id="L69" title="All 2 branches covered.">        if (priority != null) {</span>
 <span class="fc" id="L70">            ticket.setPriority(priority);</span>
 <span class="fc" id="L71">            ticket.setSlaDeadline(ticket.getCreatedAt().plus(classifiedSlaPolicy.slaFor(priority)));</span>
         }
@@ -74,14 +74,14 @@ public class TicketClassificationListener {
 <span class="fc" id="L74">    }</span>
 
     private &lt;E extends Enum&lt;E&gt;&gt; E parseEnumOrNull(Class&lt;E&gt; enumType, String value) {
-<span class="pc bpc" id="L77" title="2 of 4 branches missed.">        if (value == null || value.isBlank()) {</span>
-<span class="nc" id="L78">            return null;</span>
+<span class="pc bpc" id="L77" title="1 of 4 branches missed.">        if (value == null || value.isBlank()) {</span>
+<span class="fc" id="L78">            return null;</span>
         }
         try {
 <span class="fc" id="L81">            return Enum.valueOf(enumType, value);</span>
-<span class="nc" id="L82">        } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L83">            LOGGER.warning(&quot;Valor desconocido '&quot; + value + &quot;' para &quot; + enumType.getSimpleName());</span>
-<span class="nc" id="L84">            return null;</span>
+<span class="fc" id="L82">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L83">            LOGGER.warning(&quot;Valor desconocido '&quot; + value + &quot;' para &quot; + enumType.getSimpleName());</span>
+<span class="fc" id="L84">            return null;</span>
         }
     }
 }

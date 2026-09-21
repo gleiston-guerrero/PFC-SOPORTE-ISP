@@ -38,5 +38,12 @@ public class Ticket {
 <span class="fc" id="L38">    private OffsetDateTime slaDeadline;</span>
 <span class="fc" id="L39">    private OffsetDateTime resolvedAt;</span>
 <span class="fc" id="L40">    private boolean slaBreached;</span>
+
+    // Evidencia del cierre en sitio (Entregable 10 de la guia de cierre): solo se llenan
+    // cuando el tecnico cierra el ticket desde el movil con foto + GPS. Nulas en cualquier
+    // otra transicion de estado.
+<span class="fc" id="L45">    private byte[] evidencePhoto;</span>
+<span class="fc" id="L46">    private Double evidenceLatitude;</span>
+<span class="fc" id="L47">    private Double evidenceLongitude;</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

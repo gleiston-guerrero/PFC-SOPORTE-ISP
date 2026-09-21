@@ -23,7 +23,7 @@ import java.util.UUID;
 
 /**
  * Mapeo JPA real a la tabla particionada `tickets` de CockroachDB (fragmentacion horizontal
- * por created_at -- ver ADR-0003 y db-cluster/scripts/init_db.sql). Antes del refactor de la
+ * por created_at -- ver ADR-0003 y services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql). Antes del refactor de la
  * Entrega 4, estas anotaciones vivian directamente en domain/Ticket.java; ahora esa clase es
  * un POJO de dominio puro y esta es su unica contraparte con detalles de persistencia
  * (Modulo A, item 2 de la guia de E4). La conversion entre ambas vive en TicketMapper.
@@ -79,5 +79,16 @@ public class TicketJpaEntity {
 
     @Column(name = &quot;sla_breached&quot;)
 <span class="fc" id="L81">    private boolean slaBreached;</span>
+
+    // Evidencia del cierre en sitio (Entregable 10 de la guia de cierre, columnas agregadas en
+    // db/migration/V3__add_close_evidence.sql). Nulas salvo en el cierre desde el movil.
+    @Column(name = &quot;evidence_photo&quot;)
+<span class="fc" id="L86">    private byte[] evidencePhoto;</span>
+
+    @Column(name = &quot;evidence_latitude&quot;)
+<span class="fc" id="L89">    private Double evidenceLatitude;</span>
+
+    @Column(name = &quot;evidence_longitude&quot;)
+<span class="fc" id="L92">    private Double evidenceLongitude;</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

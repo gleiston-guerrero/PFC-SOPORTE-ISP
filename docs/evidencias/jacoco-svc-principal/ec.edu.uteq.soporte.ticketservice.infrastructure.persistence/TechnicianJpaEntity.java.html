@@ -11,7 +11,7 @@ import java.util.UUID;
  * Copia local minima de un tecnico, sincronizada por evento desde auth-service (ver
  * infrastructure/messaging/TechnicianSyncListener.java) -- ticket-service no es dueno de
  * esta identidad, solo necesita que la fila exista para satisfacer
- * tickets_technician_id_fkey (ver db-cluster/scripts/init_db.sql) al asignar un tecnico a
+ * tickets_technician_id_fkey (ver services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql) al asignar un tecnico a
  * un ticket. No expone puerto de dominio ni repositorio publico porque, a diferencia de
  * Ticket, ningun caso de uso de este servicio consulta ni lista tecnicos por si mismo.
  */

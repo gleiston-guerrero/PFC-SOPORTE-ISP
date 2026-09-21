@@ -5,6 +5,18 @@ import ec.edu.uteq.soporte.ticketservice.domain.Zone;
 
 import java.util.UUID;
 
-<span class="fc" id="L8">public record UpdateTicketStatusCommand(UUID ticketId, TicketStatus newStatus, String role, Zone authZone) {</span>
+/**
+ * evidencePhoto/evidenceLatitude/evidenceLongitude son opcionales (Entregable 10 de la guia de
+ * cierre): solo llegan del cierre en sitio desde el movil.
+ */
+<span class="fc" id="L12">public record UpdateTicketStatusCommand(</span>
+        UUID ticketId,
+        TicketStatus newStatus,
+        String role,
+        Zone authZone,
+        byte[] evidencePhoto,
+        Double evidenceLatitude,
+        Double evidenceLongitude
+) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

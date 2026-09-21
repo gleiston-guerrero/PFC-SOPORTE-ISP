@@ -13,7 +13,7 @@ import jakarta.validation.constraints.NotNull;
  * validado por auth-service (ver AuthGatewayFilter), asi que siempre es el id real
  * del usuario autenticado, no un valor que el cliente pueda falsificar.
  */
-<span class="nc" id="L16">public record CreateTicketRequest(</span>
+<span class="fc" id="L16">public record CreateTicketRequest(</span>
         @NotNull Zone zone,
         @NotBlank String title,
         @NotBlank String description,

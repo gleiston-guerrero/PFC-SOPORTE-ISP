@@ -34,10 +34,19 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 <span class="fc" id="L34">                .body(ApiResponse.of(null, message));</span>
     }
 
+    // Un evidencePhotoBase64 mal formado (Base64.getDecoder().decode en TicketController) lanza
+    // esta excepcion sin pasar por Bean Validation; sin este manejador caia en handleGeneric y
+    // devolvia 500 por un dato de entrada invalido, no por un fallo del servidor (Entregable 10).
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleIllegalArgument(IllegalArgumentException ex) {
+<span class="fc" id="L42">        return ResponseEntity.status(HttpStatus.BAD_REQUEST)</span>
+<span class="fc" id="L43">                .body(ApiResponse.of(null, &quot;Solicitud invalida: &quot; + ex.getMessage()));</span>
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity&lt;ApiResponse&lt;Object&gt;&gt; handleGeneric(Exception ex) {
-<span class="fc" id="L39">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
-<span class="fc" id="L40">                .body(ApiResponse.of(null, &quot;Error interno: &quot; + ex.getMessage()));</span>
+<span class="fc" id="L48">        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)</span>
+<span class="fc" id="L49">                .body(ApiResponse.of(null, &quot;Error interno: &quot; + ex.getMessage()));</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

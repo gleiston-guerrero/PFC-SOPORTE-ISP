@@ -33,30 +33,63 @@ public class UpdateTicketStatusHandler implements TicketCommandHandler&lt;Update
 <span class="fc" id="L33">        this.eventPublisher = eventPublisher;</span>
 <span class="fc" id="L34">    }</span>
 
+    private static final String ROLE_TECNICO = &quot;TECNICO&quot;;
+
     @Override
     public Ticket handle(UpdateTicketStatusCommand command) {
-<span class="fc" id="L38">        Ticket ticket = ticketRepository.findByTicketId(command.ticketId())</span>
-<span class="pc" id="L39">                .orElseThrow(() -&gt; new TicketNotFoundException(command.ticketId()));</span>
-<span class="fc" id="L40">        authorization.assertCanManage(ticket, command.role(), command.authZone());</span>
+<span class="fc" id="L40">        Ticket ticket = ticketRepository.findByTicketId(command.ticketId())</span>
+<span class="fc" id="L41">                .orElseThrow(() -&gt; new TicketNotFoundException(command.ticketId()));</span>
+<span class="fc" id="L42">        authorization.assertCanManage(ticket, command.role(), command.authZone());</span>
 
-<span class="fc" id="L42">        TicketStatus oldStatus = ticket.getStatus();</span>
-<span class="fc" id="L43">        ticket.setStatus(command.newStatus());</span>
-<span class="fc bfc" id="L44" title="All 2 branches covered.">        if (command.newStatus() == TicketStatus.RESUELTO) {</span>
-<span class="fc" id="L45">            ticket.setResolvedAt(OffsetDateTime.now());</span>
-<span class="fc" id="L46">            ticket.setSlaBreached(</span>
-<span class="pc bpc" id="L47" title="1 of 2 branches missed.">                    ticket.getSlaDeadline() != null</span>
-<span class="pc bpc" id="L48" title="1 of 2 branches missed.">                            &amp;&amp; ticket.getResolvedAt().isAfter(ticket.getSlaDeadline())</span>
-            );
+<span class="fc" id="L44">        TicketStatus oldStatus = ticket.getStatus();</span>
+
+        // Idempotencia del cierre en sitio (Entregable 10): el movil reintenta el mismo PATCH
+        // hasta 3 veces si no recibe respuesta (TicketRepository.kt), lo que puede repetir una
+        // escritura que si llego al servidor. Si el ticket ya esta en el estado pedido, no hay
+        // nada que cambiar -- se devuelve tal cual, sin recalcular resolvedAt/slaBreached (que
+        // podria voltear de falso a verdadero solo por el tiempo transcurrido en el reintento)
+        // ni volver a publicar el evento de cambio de estado, que ya se publico la vez que si
+        // proceso.
+<span class="fc bfc" id="L53" title="All 2 branches covered.">        if (oldStatus == command.newStatus()) {</span>
+<span class="fc" id="L54">            return ticket;</span>
         }
-<span class="fc" id="L51">        Ticket saved = ticketWriter.saveWithRetry(ticket);</span>
-<span class="fc" id="L52">        publishStatusChanged(saved, oldStatus);</span>
-<span class="fc" id="L53">        return saved;</span>
+
+<span class="fc" id="L57">        ticket.setStatus(command.newStatus());</span>
+<span class="fc bfc" id="L58" title="All 2 branches covered.">        if (command.newStatus() == TicketStatus.RESUELTO) {</span>
+            // La evidencia es obligatoria para TECNICO (el cierre en sitio real, vía movil);
+            // un ADMIN puede resolver un ticket sin pasar por el movil (p.ej. corrigiendo un
+            // estado a mano), asi que para ese rol se mantiene opcional a proposito.
+<span class="fc bfc" id="L62" title="All 2 branches covered.">            if (ROLE_TECNICO.equals(command.role())</span>
+<span class="fc bfc" id="L63" title="All 2 branches covered.">                    &amp;&amp; (command.evidencePhoto() == null</span>
+<span class="pc bpc" id="L64" title="1 of 2 branches missed.">                    || command.evidenceLatitude() == null</span>
+<span class="pc bpc" id="L65" title="1 of 2 branches missed.">                    || command.evidenceLongitude() == null)) {</span>
+<span class="fc" id="L66">                throw new IllegalArgumentException(</span>
+                        &quot;El cierre en sitio requiere foto y coordenadas de evidencia&quot;);
+            }
+<span class="fc" id="L69">            ticket.setResolvedAt(OffsetDateTime.now());</span>
+<span class="fc" id="L70">            ticket.setSlaBreached(</span>
+<span class="fc bfc" id="L71" title="All 2 branches covered.">                    ticket.getSlaDeadline() != null</span>
+<span class="fc bfc" id="L72" title="All 2 branches covered.">                            &amp;&amp; ticket.getResolvedAt().isAfter(ticket.getSlaDeadline())</span>
+            );
+<span class="fc bfc" id="L74" title="All 2 branches covered.">            if (command.evidencePhoto() != null) {</span>
+<span class="fc" id="L75">                ticket.setEvidencePhoto(command.evidencePhoto());</span>
+            }
+<span class="fc bfc" id="L77" title="All 2 branches covered.">            if (command.evidenceLatitude() != null) {</span>
+<span class="fc" id="L78">                ticket.setEvidenceLatitude(command.evidenceLatitude());</span>
+            }
+<span class="fc bfc" id="L80" title="All 2 branches covered.">            if (command.evidenceLongitude() != null) {</span>
+<span class="fc" id="L81">                ticket.setEvidenceLongitude(command.evidenceLongitude());</span>
+            }
+        }
+<span class="fc" id="L84">        Ticket saved = ticketWriter.saveWithRetry(ticket);</span>
+<span class="fc" id="L85">        publishStatusChanged(saved, oldStatus);</span>
+<span class="fc" id="L86">        return saved;</span>
     }
 
     private void publishStatusChanged(Ticket ticket, TicketStatus oldStatus) {
-<span class="fc" id="L57">        TicketStatusChangedEvent event = new TicketStatusChangedEvent(</span>
-<span class="fc" id="L58">                ticket.getId().toString(), ticket.getZone().name(), oldStatus.name(), ticket.getStatus().name());</span>
-<span class="fc" id="L59">        eventPublisher.publish(TOPIC_TICKET_STATUS_CHANGED, event.ticketId(), event);</span>
-<span class="fc" id="L60">    }</span>
+<span class="fc" id="L90">        TicketStatusChangedEvent event = new TicketStatusChangedEvent(</span>
+<span class="fc" id="L91">                ticket.getId().toString(), ticket.getZone().name(), oldStatus.name(), ticket.getStatus().name());</span>
+<span class="fc" id="L92">        eventPublisher.publish(TOPIC_TICKET_STATUS_CHANGED, event.ticketId(), event);</span>
+<span class="fc" id="L93">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

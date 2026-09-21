@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>DomainBeansConfig.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticket-service</a> &gt; <a href="index.source.html" class="el_package">ec.edu.uteq.soporte.ticketservice.infrastructure.config</a> &gt; <span class="el_source">DomainBeansConfig.java</span></div><h1>DomainBeansConfig.java</h1><pre class="source lang-java linenums">package ec.edu.uteq.soporte.ticketservice.infrastructure.config;
+
+import ec.edu.uteq.soporte.ticketservice.domain.correlation.SinCorrelacionStrategy;
+import ec.edu.uteq.soporte.ticketservice.domain.correlation.TelemetryQueryPort;
+import ec.edu.uteq.soporte.ticketservice.domain.correlation.ZonaVentanaStrategy;
+import ec.edu.uteq.soporte.ticketservice.domain.correlation.ZonaVentanaTelemetriaStrategy;
+import ec.edu.uteq.soporte.ticketservice.domain.escalation.EscalationChain;
+import ec.edu.uteq.soporte.ticketservice.domain.escalation.EscalationHandler;
+import ec.edu.uteq.soporte.ticketservice.domain.escalation.SlaBreachedEscalationHandler;
+import ec.edu.uteq.soporte.ticketservice.domain.escalation.StaleCriticalEscalationHandler;
+import ec.edu.uteq.soporte.ticketservice.domain.factory.TicketFactory;
+import ec.edu.uteq.soporte.ticketservice.domain.policy.ClassifiedSlaPolicy;
+import ec.edu.uteq.soporte.ticketservice.domain.policy.DefaultSlaPolicy;
+import ec.edu.uteq.soporte.ticketservice.domain.policy.SlaPolicy;
+import java.util.List;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
+
+/**
+ * Registra como beans de Spring las clases de domain/ que antes se anotaban a si mismas con
+ * @Component/@Value/@Order (Entregable 1 de la guia de cierre: &quot;el dominio importa el marco&quot;).
+ * domain/ pasa a depender solo de Java puro; este es el unico punto de infrastructure/ que
+ * conoce esas clases por su tipo concreto para poder instanciarlas.
+ *
+ * Los nombres de metodo importan: Spring resuelve por nombre cuando hay mas de un bean del
+ * mismo tipo (SlaPolicy) y no hay un calificador explicito -- por eso &quot;defaultSlaPolicy&quot; aqui
+ * debe llamarse exactamente asi, igual que antes lo resolvia el nombre del parametro
+ * &quot;defaultSlaPolicy&quot; en el constructor de TicketFactory.
+ */
+@Configuration
+<span class="nc" id="L33">public class DomainBeansConfig {</span>
+
+    @Bean
+    public DefaultSlaPolicy defaultSlaPolicy() {
+<span class="nc" id="L37">        return new DefaultSlaPolicy();</span>
+    }
+
+    @Bean
+    public ClassifiedSlaPolicy classifiedSlaPolicy() {
+<span class="nc" id="L42">        return new ClassifiedSlaPolicy();</span>
+    }
+
+    @Bean
+    public TicketFactory ticketFactory(SlaPolicy defaultSlaPolicy) {
+<span class="nc" id="L47">        return new TicketFactory(defaultSlaPolicy);</span>
+    }
+
+    // CORREL: CorrelationService recibe un Map&lt;String, CorrelationStrategy&gt; con estos tres
+    // nombres exactos como clave -- deben coincidir con los valores validos de la variable de
+    // entorno CORREL (c0/c1/c2). Ver application/correlation/CorrelationService.java.
+    @Bean(&quot;c0&quot;)
+    public SinCorrelacionStrategy sinCorrelacionStrategy() {
+<span class="nc" id="L55">        return new SinCorrelacionStrategy();</span>
+    }
+
+    @Bean(&quot;c1&quot;)
+    public ZonaVentanaStrategy zonaVentanaStrategy() {
+<span class="nc" id="L60">        return new ZonaVentanaStrategy();</span>
+    }
+
+    @Bean(&quot;c2&quot;)
+    public ZonaVentanaTelemetriaStrategy zonaVentanaTelemetriaStrategy(
+            TelemetryQueryPort telemetryQueryPort,
+            @Value(&quot;${correlation.window-minutes:15}&quot;) long ventanaMinutos) {
+<span class="nc" id="L67">        return new ZonaVentanaTelemetriaStrategy(telemetryQueryPort, ventanaMinutos);</span>
+    }
+
+    // EscalationChain: el orden de la lista es el orden real de evaluacion (SLA vencido antes
+    // que critico-sin-asignar). Antes lo fijaba @Order en cada eslabon; ahora lo fija el orden
+    // de este List.of() y el @Order en cada metodo @Bean, que Spring respeta igual al inyectar
+    // List&lt;EscalationHandler&gt;.
+    @Bean
+    @Order(1)
+    public SlaBreachedEscalationHandler slaBreachedEscalationHandler() {
+<span class="nc" id="L77">        return new SlaBreachedEscalationHandler();</span>
+    }
+
+    @Bean
+    @Order(2)
+    public StaleCriticalEscalationHandler staleCriticalEscalationHandler() {
+<span class="nc" id="L83">        return new StaleCriticalEscalationHandler();</span>
+    }
+
+    @Bean
+    public EscalationChain escalationChain(List&lt;EscalationHandler&gt; handlersInOrder) {
+<span class="nc" id="L88">        return new EscalationChain(handlersInOrder);</span>
+    }
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

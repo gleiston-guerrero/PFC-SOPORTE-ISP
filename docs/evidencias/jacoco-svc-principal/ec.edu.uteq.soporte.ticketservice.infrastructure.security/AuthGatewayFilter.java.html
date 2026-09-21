@@ -7,6 +7,8 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpStatus;
@@ -32,71 +34,87 @@ import java.util.UUID;
 @Component
 public class AuthGatewayFilter extends OncePerRequestFilter {
 
+    // Entregable 11 de la guia de cierre: la evidencia de integracion movil-backend no
+    // emparejaba la captura de la app con ninguna linea de acceso real (metodo, ruta, codigo
+    // de estado de la peticion HTTP) -- solo con la sentencia SQL que esa peticion disparaba
+    // rio abajo dentro de ticket-service. Este logger cierra ese hueco: al usar SLF4J con
+    // logstash-logback-encoder (ya configurado en logback-spring.xml), la linea JSON que
+    // produce lleva el mismo campo &quot;trace_id&quot; del MDC que ya llevaba la linea de Hibernate SQL
+    // -- ambas lineas de un mismo request quedan correlacionables por trace_id, no solo por
+    // cercania temporal.
+<span class="fc" id="L45">    private static final Logger ACCESS_LOG = LoggerFactory.getLogger(&quot;ticket-service.access&quot;);</span>
+
     private final RestClient restClient;
     private final ObjectMapper objectMapper;
     private final String validateUrl;
 
     public AuthGatewayFilter(ObjectMapper objectMapper,
-<span class="nc" id="L40">                              @Value(&quot;${auth.service.base-url}&quot;) String authServiceBaseUrl) {</span>
-<span class="nc" id="L41">        this.objectMapper = objectMapper;</span>
-<span class="nc" id="L42">        this.restClient = RestClient.create();</span>
-<span class="nc" id="L43">        this.validateUrl = authServiceBaseUrl + &quot;/validate&quot;;</span>
-<span class="nc" id="L44">    }</span>
+<span class="fc" id="L52">                              @Value(&quot;${auth.service.base-url}&quot;) String authServiceBaseUrl) {</span>
+<span class="fc" id="L53">        this.objectMapper = objectMapper;</span>
+<span class="fc" id="L54">        this.restClient = RestClient.create();</span>
+<span class="fc" id="L55">        this.validateUrl = authServiceBaseUrl + &quot;/validate&quot;;</span>
+<span class="fc" id="L56">    }</span>
 
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
-<span class="nc bnc" id="L48" title="All 2 branches missed.">        return &quot;OPTIONS&quot;.equalsIgnoreCase(request.getMethod())</span>
-<span class="nc bnc" id="L49" title="All 2 branches missed.">                || !request.getRequestURI().startsWith(&quot;/api/v1/tickets&quot;);</span>
+<span class="fc bfc" id="L60" title="All 2 branches covered.">        return &quot;OPTIONS&quot;.equalsIgnoreCase(request.getMethod())</span>
+<span class="fc bfc" id="L61" title="All 2 branches covered.">                || !request.getRequestURI().startsWith(&quot;/api/v1/tickets&quot;);</span>
     }
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
-<span class="nc" id="L55">        String header = request.getHeader(&quot;Authorization&quot;);</span>
-<span class="nc bnc" id="L56" title="All 4 branches missed.">        if (header == null || !header.startsWith(&quot;Bearer &quot;)) {</span>
-<span class="nc" id="L57">            writeUnauthorized(response, &quot;Se requiere iniciar sesion (encabezado Authorization ausente)&quot;);</span>
-<span class="nc" id="L58">            return;</span>
+<span class="fc" id="L67">        String header = request.getHeader(&quot;Authorization&quot;);</span>
+<span class="fc bfc" id="L68" title="All 4 branches covered.">        if (header == null || !header.startsWith(&quot;Bearer &quot;)) {</span>
+<span class="fc" id="L69">            writeUnauthorized(response, &quot;Se requiere iniciar sesion (encabezado Authorization ausente)&quot;);</span>
+<span class="fc" id="L70">            return;</span>
         }
 
         try {
-<span class="nc" id="L62">            ApiResponse&lt;ValidateResponse&gt; validated = restClient.get()</span>
-<span class="nc" id="L63">                    .uri(validateUrl)</span>
-<span class="nc" id="L64">                    .header(&quot;Authorization&quot;, header)</span>
-<span class="nc" id="L65">                    .retrieve()</span>
-<span class="nc" id="L66">                    .body(new ParameterizedTypeReference&lt;ApiResponse&lt;ValidateResponse&gt;&gt;() {</span>
+<span class="fc" id="L74">            ApiResponse&lt;ValidateResponse&gt; validated = restClient.get()</span>
+<span class="fc" id="L75">                    .uri(validateUrl)</span>
+<span class="fc" id="L76">                    .header(&quot;Authorization&quot;, header)</span>
+<span class="fc" id="L77">                    .retrieve()</span>
+<span class="fc" id="L78">                    .body(new ParameterizedTypeReference&lt;ApiResponse&lt;ValidateResponse&gt;&gt;() {</span>
                     });
 
-<span class="nc bnc" id="L69" title="All 4 branches missed.">            if (validated == null || validated.data() == null) {</span>
-<span class="nc" id="L70">                writeUnauthorized(response, &quot;Token invalido&quot;);</span>
-<span class="nc" id="L71">                return;</span>
+<span class="pc bpc" id="L81" title="1 of 4 branches missed.">            if (validated == null || validated.data() == null) {</span>
+<span class="fc" id="L82">                writeUnauthorized(response, &quot;Token invalido&quot;);</span>
+<span class="fc" id="L83">                return;</span>
             }
 
-<span class="nc" id="L74">            request.setAttribute(&quot;authUserId&quot;, UUID.fromString(validated.data().userId()));</span>
-<span class="nc" id="L75">            request.setAttribute(&quot;authRole&quot;, validated.data().role());</span>
-<span class="nc" id="L76">            request.setAttribute(&quot;authZone&quot;, parseZone(validated.data().zone()));</span>
-<span class="nc" id="L77">            filterChain.doFilter(request, response);</span>
-<span class="nc" id="L78">        } catch (RestClientException e) {</span>
-<span class="nc" id="L79">            writeUnauthorized(response, &quot;Token invalido o auth-service no disponible: &quot; + e.getMessage());</span>
-<span class="nc" id="L80">        }</span>
-<span class="nc" id="L81">    }</span>
+<span class="fc" id="L86">            request.setAttribute(&quot;authUserId&quot;, UUID.fromString(validated.data().userId()));</span>
+<span class="fc" id="L87">            request.setAttribute(&quot;authRole&quot;, validated.data().role());</span>
+<span class="fc" id="L88">            request.setAttribute(&quot;authZone&quot;, parseZone(validated.data().zone()));</span>
+            try {
+<span class="fc" id="L90">                filterChain.doFilter(request, response);</span>
+            } finally {
+<span class="fc" id="L92">                ACCESS_LOG.info(&quot;{} {} -&gt; {} (userId={}, role={})&quot;,</span>
+<span class="fc" id="L93">                        request.getMethod(), request.getRequestURI(), response.getStatus(),</span>
+<span class="fc" id="L94">                        validated.data().userId(), validated.data().role());</span>
+            }
+<span class="fc" id="L96">        } catch (RestClientException e) {</span>
+<span class="fc" id="L97">            writeUnauthorized(response, &quot;Token invalido o auth-service no disponible: &quot; + e.getMessage());</span>
+<span class="fc" id="L98">        }</span>
+<span class="fc" id="L99">    }</span>
 
     // Valor invalido/desconocido se trata como &quot;sin zona&quot; (fail-closed): un TECNICO
     // sin zona reconocible no obtiene acceso amplio, ver TicketService.
     private Zone parseZone(String zoneClaim) {
-<span class="nc bnc" id="L86" title="All 4 branches missed.">        if (zoneClaim == null || zoneClaim.isBlank()) {</span>
-<span class="nc" id="L87">            return null;</span>
+<span class="pc bpc" id="L104" title="1 of 4 branches missed.">        if (zoneClaim == null || zoneClaim.isBlank()) {</span>
+<span class="fc" id="L105">            return null;</span>
         }
         try {
-<span class="nc" id="L90">            return Zone.valueOf(zoneClaim);</span>
-<span class="nc" id="L91">        } catch (IllegalArgumentException e) {</span>
-<span class="nc" id="L92">            return null;</span>
+<span class="fc" id="L108">            return Zone.valueOf(zoneClaim);</span>
+<span class="fc" id="L109">        } catch (IllegalArgumentException e) {</span>
+<span class="fc" id="L110">            return null;</span>
         }
     }
 
     private void writeUnauthorized(HttpServletResponse response, String message) throws IOException {
-<span class="nc" id="L97">        response.setStatus(HttpStatus.UNAUTHORIZED.value());</span>
-<span class="nc" id="L98">        response.setContentType(&quot;application/json&quot;);</span>
-<span class="nc" id="L99">        objectMapper.writeValue(response.getWriter(), ApiResponse.of(null, message));</span>
-<span class="nc" id="L100">    }</span>
+<span class="fc" id="L115">        response.setStatus(HttpStatus.UNAUTHORIZED.value());</span>
+<span class="fc" id="L116">        response.setContentType(&quot;application/json&quot;);</span>
+<span class="fc" id="L117">        objectMapper.writeValue(response.getWriter(), ApiResponse.of(null, message));</span>
+<span class="fc" id="L118">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

@@ -4,24 +4,25 @@ import ec.edu.uteq.soporte.ticketservice.domain.Incidencia;
 import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
 import java.util.List;
 import java.util.Set;
-import org.springframework.stereotype.Component;
 
 /**
  * CORREL=c0 (linea base): sin correlacion. Cada ticket abre su propia Incidencia de un solo
  * elemento -- ignora por completo las candidatas de la misma zona. Es el punto de comparacion
  * contra el que c1/c2 se miden en el experimento (ver experimentos/analizar_correlacion.py).
+ *
+ * Registrado como bean de Spring (nombre &quot;c0&quot;) en
+ * infrastructure/config/DomainBeansConfig.java, no aqui -- domain no depende del framework.
  */
-@Component(&quot;c0&quot;)
-<span class="fc" id="L15">public class SinCorrelacionStrategy implements CorrelationStrategy {</span>
+<span class="fc" id="L16">public class SinCorrelacionStrategy implements CorrelationStrategy {</span>
 
     @Override
     public Incidencia correlacionar(Ticket ticket, List&lt;Incidencia&gt; incidenciasAbiertasEnZona) {
-<span class="fc" id="L19">        return Incidencia.builder()</span>
-<span class="fc" id="L20">                .zone(ticket.getZone())</span>
-<span class="fc" id="L21">                .createdAt(ticket.getCreatedAt())</span>
-<span class="fc" id="L22">                .correlMode(&quot;c0&quot;)</span>
-<span class="fc" id="L23">                .ticketIds(Set.of(ticket.getId()))</span>
-<span class="fc" id="L24">                .build();</span>
+<span class="fc" id="L20">        return Incidencia.builder()</span>
+<span class="fc" id="L21">                .zone(ticket.getZone())</span>
+<span class="fc" id="L22">                .createdAt(ticket.getCreatedAt())</span>
+<span class="fc" id="L23">                .correlMode(&quot;c0&quot;)</span>
+<span class="fc" id="L24">                .ticketIds(Set.of(ticket.getId()))</span>
+<span class="fc" id="L25">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

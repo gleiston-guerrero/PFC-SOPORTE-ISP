@@ -9,7 +9,7 @@ import ec.edu.uteq.soporte.ticketservice.domain.Zone;
 import java.time.OffsetDateTime;
 import java.util.UUID;
 
-<span class="nc" id="L12">public record TicketResponse(</span>
+<span class="fc" id="L12">public record TicketResponse(</span>
         Zone zone,
         UUID ticketId,
         UUID clientId,
@@ -24,10 +24,10 @@ import java.util.UUID;
         boolean slaBreached
 ) {
     public static TicketResponse from(Ticket t) {
-<span class="nc" id="L27">        return new TicketResponse(</span>
-<span class="nc" id="L28">                t.getZone(), t.getId(), t.getClientId(), t.getTechnicianId(),</span>
-<span class="nc" id="L29">                t.getCategory(), t.getPriority(), t.getStatus(), t.getDescription(),</span>
-<span class="nc" id="L30">                t.getCreatedAt(), t.getSlaDeadline(), t.getResolvedAt(), t.isSlaBreached()</span>
+<span class="fc" id="L27">        return new TicketResponse(</span>
+<span class="fc" id="L28">                t.getZone(), t.getId(), t.getClientId(), t.getTechnicianId(),</span>
+<span class="fc" id="L29">                t.getCategory(), t.getPriority(), t.getStatus(), t.getDescription(),</span>
+<span class="fc" id="L30">                t.getCreatedAt(), t.getSlaDeadline(), t.getResolvedAt(), t.isSlaBreached()</span>
         );
     }
 }

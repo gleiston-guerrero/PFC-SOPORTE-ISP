@@ -34,32 +34,32 @@ public class TicketRepositoryAdapter implements TicketRepository {
 
     @Override
     public List&lt;Ticket&gt; findByZone(Zone zone) {
-<span class="nc" id="L37">        return jpaRepository.findByZone(zone).stream().map(mapper::toDomain).toList();</span>
+<span class="fc" id="L37">        return jpaRepository.findByZone(zone).stream().map(mapper::toDomain).toList();</span>
     }
 
     @Override
     public List&lt;Ticket&gt; findByZoneAndStatus(Zone zone, TicketStatus status) {
-<span class="nc" id="L42">        return jpaRepository.findByZoneAndStatus(zone, status).stream().map(mapper::toDomain).toList();</span>
+<span class="fc" id="L42">        return jpaRepository.findByZoneAndStatus(zone, status).stream().map(mapper::toDomain).toList();</span>
     }
 
     @Override
     public List&lt;Ticket&gt; findByStatus(TicketStatus status) {
-<span class="nc" id="L47">        return jpaRepository.findByStatus(status).stream().map(mapper::toDomain).toList();</span>
+<span class="fc" id="L47">        return jpaRepository.findByStatus(status).stream().map(mapper::toDomain).toList();</span>
     }
 
     @Override
     public List&lt;Ticket&gt; findByClientId(UUID clientId) {
-<span class="nc" id="L52">        return jpaRepository.findByClientId(clientId).stream().map(mapper::toDomain).toList();</span>
+<span class="fc" id="L52">        return jpaRepository.findByClientId(clientId).stream().map(mapper::toDomain).toList();</span>
     }
 
     @Override
     public List&lt;Ticket&gt; findByClientIdAndStatus(UUID clientId, TicketStatus status) {
-<span class="nc" id="L57">        return jpaRepository.findByClientIdAndStatus(clientId, status).stream().map(mapper::toDomain).toList();</span>
+<span class="fc" id="L57">        return jpaRepository.findByClientIdAndStatus(clientId, status).stream().map(mapper::toDomain).toList();</span>
     }
 
     @Override
     public List&lt;Ticket&gt; findAll() {
-<span class="nc" id="L62">        return jpaRepository.findAll().stream().map(mapper::toDomain).toList();</span>
+<span class="fc" id="L62">        return jpaRepository.findAll().stream().map(mapper::toDomain).toList();</span>
     }
 
     @Override

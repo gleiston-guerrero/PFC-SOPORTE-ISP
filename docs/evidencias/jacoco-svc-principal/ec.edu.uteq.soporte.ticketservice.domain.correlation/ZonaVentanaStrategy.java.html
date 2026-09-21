@@ -5,7 +5,6 @@ import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
-import org.springframework.stereotype.Component;
 
 /**
  * CORREL=c1: agrupa por zona y ventana deslizante. Si ya existe una Incidencia abierta en la
@@ -16,30 +15,32 @@ import org.springframework.stereotype.Component;
  * de zona+tiempo, sin corroborar que realmente este pasando algo ahi. Esto es a proposito --
  * es exactamente lo que el Escenario 4 (dos averias simultaneas) del protocolo experimental
  * pone a prueba: agrupar solo por zona+ventana puede fundir dos averias distintas en una.
+ *
+ * Registrado como bean de Spring (nombre &quot;c1&quot;) en
+ * infrastructure/config/DomainBeansConfig.java, no aqui -- domain no depende del framework.
  */
-@Component(&quot;c1&quot;)
-<span class="fc" id="L21">public class ZonaVentanaStrategy implements CorrelationStrategy {</span>
+<span class="fc" id="L22">public class ZonaVentanaStrategy implements CorrelationStrategy {</span>
 
     @Override
     public Incidencia correlacionar(Ticket ticket, List&lt;Incidencia&gt; incidenciasAbiertasEnZona) {
-<span class="fc" id="L25">        return incidenciasAbiertasEnZona.stream()</span>
-<span class="fc" id="L26">                .max(Comparator.comparing(Incidencia::getCreatedAt))</span>
-<span class="fc" id="L27">                .map(existente -&gt; unir(existente, ticket))</span>
-<span class="fc" id="L28">                .orElseGet(() -&gt; abrirNueva(ticket));</span>
+<span class="fc" id="L26">        return incidenciasAbiertasEnZona.stream()</span>
+<span class="fc" id="L27">                .max(Comparator.comparing(Incidencia::getCreatedAt))</span>
+<span class="fc" id="L28">                .map(existente -&gt; unir(existente, ticket))</span>
+<span class="fc" id="L29">                .orElseGet(() -&gt; abrirNueva(ticket));</span>
     }
 
     private Incidencia unir(Incidencia existente, Ticket ticket) {
-<span class="fc" id="L32">        existente.getTicketIds().add(ticket.getId());</span>
-<span class="fc" id="L33">        return existente;</span>
+<span class="fc" id="L33">        existente.getTicketIds().add(ticket.getId());</span>
+<span class="fc" id="L34">        return existente;</span>
     }
 
     private Incidencia abrirNueva(Ticket ticket) {
-<span class="fc" id="L37">        return Incidencia.builder()</span>
-<span class="fc" id="L38">                .zone(ticket.getZone())</span>
-<span class="fc" id="L39">                .createdAt(ticket.getCreatedAt())</span>
-<span class="fc" id="L40">                .correlMode(&quot;c1&quot;)</span>
-<span class="fc" id="L41">                .ticketIds(new HashSet&lt;&gt;(List.of(ticket.getId())))</span>
-<span class="fc" id="L42">                .build();</span>
+<span class="fc" id="L38">        return Incidencia.builder()</span>
+<span class="fc" id="L39">                .zone(ticket.getZone())</span>
+<span class="fc" id="L40">                .createdAt(ticket.getCreatedAt())</span>
+<span class="fc" id="L41">                .correlMode(&quot;c1&quot;)</span>
+<span class="fc" id="L42">                .ticketIds(new HashSet&lt;&gt;(List.of(ticket.getId())))</span>
+<span class="fc" id="L43">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

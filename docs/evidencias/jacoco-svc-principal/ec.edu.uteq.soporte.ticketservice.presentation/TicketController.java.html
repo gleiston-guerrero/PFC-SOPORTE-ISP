@@ -18,6 +18,7 @@ import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.UUID;
 
@@ -44,12 +45,12 @@ public class TicketController {
             CreateTicketHandler createTicketHandler,
             UpdateTicketStatusHandler updateTicketStatusHandler,
             AssignTechnicianHandler assignTechnicianHandler,
-<span class="nc" id="L47">            TicketQueryService ticketQueryService) {</span>
-<span class="nc" id="L48">        this.createTicketHandler = createTicketHandler;</span>
-<span class="nc" id="L49">        this.updateTicketStatusHandler = updateTicketStatusHandler;</span>
-<span class="nc" id="L50">        this.assignTechnicianHandler = assignTechnicianHandler;</span>
-<span class="nc" id="L51">        this.ticketQueryService = ticketQueryService;</span>
-<span class="nc" id="L52">    }</span>
+<span class="fc" id="L48">            TicketQueryService ticketQueryService) {</span>
+<span class="fc" id="L49">        this.createTicketHandler = createTicketHandler;</span>
+<span class="fc" id="L50">        this.updateTicketStatusHandler = updateTicketStatusHandler;</span>
+<span class="fc" id="L51">        this.assignTechnicianHandler = assignTechnicianHandler;</span>
+<span class="fc" id="L52">        this.ticketQueryService = ticketQueryService;</span>
+<span class="fc" id="L53">    }</span>
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
@@ -57,11 +58,11 @@ public class TicketController {
             @Valid @RequestBody CreateTicketRequest request,
             @RequestAttribute(&quot;authUserId&quot;) UUID clientId,
             @RequestAttribute(&quot;authRole&quot;) String role) {
-<span class="nc" id="L60">        CreateTicketCommand command = new CreateTicketCommand(</span>
-<span class="nc" id="L61">                request.zone(), request.title(), request.description(),</span>
-<span class="nc" id="L62">                request.contactPhone(), request.address(), clientId, role);</span>
-<span class="nc" id="L63">        Ticket created = createTicketHandler.handle(command);</span>
-<span class="nc" id="L64">        return ApiResponse.of(TicketResponse.from(created), &quot;Ticket creado exitosamente&quot;);</span>
+<span class="fc" id="L61">        CreateTicketCommand command = new CreateTicketCommand(</span>
+<span class="fc" id="L62">                request.zone(), request.title(), request.description(),</span>
+<span class="fc" id="L63">                request.contactPhone(), request.address(), clientId, role);</span>
+<span class="fc" id="L64">        Ticket created = createTicketHandler.handle(command);</span>
+<span class="fc" id="L65">        return ApiResponse.of(TicketResponse.from(created), &quot;Ticket creado exitosamente&quot;);</span>
     }
 
     @GetMapping
@@ -71,10 +72,10 @@ public class TicketController {
             @RequestAttribute(&quot;authRole&quot;) String role,
             @RequestAttribute(&quot;authUserId&quot;) UUID userId,
             @RequestAttribute(required = false) Zone authZone) {
-<span class="nc" id="L74">        List&lt;TicketResponse&gt; tickets = ticketQueryService.listTickets(zone, status, role, userId, authZone).stream()</span>
-<span class="nc" id="L75">                .map(TicketResponse::from)</span>
-<span class="nc" id="L76">                .toList();</span>
-<span class="nc" id="L77">        return ApiResponse.of(tickets, &quot;OK&quot;);</span>
+<span class="fc" id="L75">        List&lt;TicketResponse&gt; tickets = ticketQueryService.listTickets(zone, status, role, userId, authZone).stream()</span>
+<span class="fc" id="L76">                .map(TicketResponse::from)</span>
+<span class="fc" id="L77">                .toList();</span>
+<span class="fc" id="L78">        return ApiResponse.of(tickets, &quot;OK&quot;);</span>
     }
 
     @GetMapping(&quot;/{id}&quot;)
@@ -83,8 +84,8 @@ public class TicketController {
             @RequestAttribute(&quot;authRole&quot;) String role,
             @RequestAttribute(&quot;authUserId&quot;) UUID userId,
             @RequestAttribute(required = false) Zone authZone) {
-<span class="nc" id="L86">        Ticket ticket = ticketQueryService.getTicket(id, role, userId, authZone);</span>
-<span class="nc" id="L87">        return ApiResponse.of(TicketResponse.from(ticket), &quot;OK&quot;);</span>
+<span class="fc" id="L87">        Ticket ticket = ticketQueryService.getTicket(id, role, userId, authZone);</span>
+<span class="fc" id="L88">        return ApiResponse.of(TicketResponse.from(ticket), &quot;OK&quot;);</span>
     }
 
     @PatchMapping(&quot;/{id}/status&quot;)
@@ -93,9 +94,13 @@ public class TicketController {
             @Valid @RequestBody UpdateStatusRequest request,
             @RequestAttribute(&quot;authRole&quot;) String role,
             @RequestAttribute(required = false) Zone authZone) {
-<span class="nc" id="L96">        UpdateTicketStatusCommand command = new UpdateTicketStatusCommand(id, request.status(), role, authZone);</span>
-<span class="nc" id="L97">        Ticket updated = updateTicketStatusHandler.handle(command);</span>
-<span class="nc" id="L98">        return ApiResponse.of(TicketResponse.from(updated), &quot;Estado actualizado&quot;);</span>
+<span class="fc bfc" id="L97" title="All 2 branches covered.">        byte[] evidencePhoto = request.evidencePhotoBase64() != null</span>
+<span class="fc" id="L98">                ? Base64.getDecoder().decode(request.evidencePhotoBase64())</span>
+<span class="fc" id="L99">                : null;</span>
+<span class="fc" id="L100">        UpdateTicketStatusCommand command = new UpdateTicketStatusCommand(</span>
+<span class="fc" id="L101">                id, request.status(), role, authZone, evidencePhoto, request.latitude(), request.longitude());</span>
+<span class="fc" id="L102">        Ticket updated = updateTicketStatusHandler.handle(command);</span>
+<span class="fc" id="L103">        return ApiResponse.of(TicketResponse.from(updated), &quot;Estado actualizado&quot;);</span>
     }
 
     @PostMapping(&quot;/{id}/assign&quot;)
@@ -104,9 +109,9 @@ public class TicketController {
             @RequestParam UUID technicianId,
             @RequestAttribute(&quot;authRole&quot;) String role,
             @RequestAttribute(required = false) Zone authZone) {
-<span class="nc" id="L107">        AssignTechnicianCommand command = new AssignTechnicianCommand(id, technicianId, role, authZone);</span>
-<span class="nc" id="L108">        Ticket updated = assignTechnicianHandler.handle(command);</span>
-<span class="nc" id="L109">        return ApiResponse.of(TicketResponse.from(updated), &quot;Tecnico asignado&quot;);</span>
+<span class="fc" id="L112">        AssignTechnicianCommand command = new AssignTechnicianCommand(id, technicianId, role, authZone);</span>
+<span class="fc" id="L113">        Ticket updated = assignTechnicianHandler.handle(command);</span>
+<span class="fc" id="L114">        return ApiResponse.of(TicketResponse.from(updated), &quot;Tecnico asignado&quot;);</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

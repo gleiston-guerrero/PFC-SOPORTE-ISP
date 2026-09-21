@@ -34,7 +34,7 @@ public class AssignTechnicianHandler implements TicketCommandHandler&lt;AssignTe
     @Override
     public Ticket handle(AssignTechnicianCommand command) {
 <span class="fc" id="L36">        Ticket ticket = ticketRepository.findByTicketId(command.ticketId())</span>
-<span class="pc" id="L37">                .orElseThrow(() -&gt; new TicketNotFoundException(command.ticketId()));</span>
+<span class="fc" id="L37">                .orElseThrow(() -&gt; new TicketNotFoundException(command.ticketId()));</span>
 <span class="fc" id="L38">        authorization.assertCanManage(ticket, command.role(), command.authZone());</span>
 
 <span class="fc" id="L40">        ticket.setTechnicianId(command.technicianId());</span>

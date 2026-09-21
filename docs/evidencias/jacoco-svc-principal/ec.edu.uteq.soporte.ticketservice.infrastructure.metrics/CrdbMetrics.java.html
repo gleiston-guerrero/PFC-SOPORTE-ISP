@@ -2,6 +2,7 @@
 
 import com.zaxxer.hikari.HikariDataSource;
 import com.zaxxer.hikari.HikariPoolMXBean;
+import ec.edu.uteq.soporte.ticketservice.application.TransactionRetryMetrics;
 import io.micrometer.core.instrument.Counter;
 import io.micrometer.core.instrument.Gauge;
 import io.micrometer.core.instrument.MeterRegistry;
@@ -28,41 +29,42 @@ import java.time.Duration;
  * no contra un valor cacheado.
  */
 @Component
-public class CrdbMetrics {
+public class CrdbMetrics implements TransactionRetryMetrics {
 
     private final Counter transactionRetries;
     private final Timer queryDuration;
 
-<span class="fc" id="L36">    public CrdbMetrics(MeterRegistry registry, DataSource dataSource) {</span>
-<span class="fc" id="L37">        this.transactionRetries = Counter.builder(&quot;crdb_transaction_retries_total&quot;)</span>
-<span class="fc" id="L38">                .description(&quot;Reintentos de transaccion por conflicto de escritura serializable en CockroachDB&quot;)</span>
-<span class="fc" id="L39">                .register(registry);</span>
+<span class="fc" id="L37">    public CrdbMetrics(MeterRegistry registry, DataSource dataSource) {</span>
+<span class="fc" id="L38">        this.transactionRetries = Counter.builder(&quot;crdb_transaction_retries_total&quot;)</span>
+<span class="fc" id="L39">                .description(&quot;Reintentos de transaccion por conflicto de escritura serializable en CockroachDB&quot;)</span>
+<span class="fc" id="L40">                .register(registry);</span>
 
-<span class="fc" id="L41">        this.queryDuration = Timer.builder(&quot;crdb_query_duration_seconds&quot;)</span>
-<span class="fc" id="L42">                .description(&quot;Duracion de cada consulta ejecutada contra el cluster CockroachDB&quot;)</span>
-<span class="fc" id="L43">                .publishPercentileHistogram()</span>
-<span class="fc" id="L44">                .minimumExpectedValue(Duration.ofMillis(5))</span>
-<span class="fc" id="L45">                .maximumExpectedValue(Duration.ofSeconds(2))</span>
-<span class="fc" id="L46">                .register(registry);</span>
+<span class="fc" id="L42">        this.queryDuration = Timer.builder(&quot;crdb_query_duration_seconds&quot;)</span>
+<span class="fc" id="L43">                .description(&quot;Duracion de cada consulta ejecutada contra el cluster CockroachDB&quot;)</span>
+<span class="fc" id="L44">                .publishPercentileHistogram()</span>
+<span class="fc" id="L45">                .minimumExpectedValue(Duration.ofMillis(5))</span>
+<span class="fc" id="L46">                .maximumExpectedValue(Duration.ofSeconds(2))</span>
+<span class="fc" id="L47">                .register(registry);</span>
 
-<span class="pc bpc" id="L48" title="1 of 2 branches missed.">        if (dataSource instanceof HikariDataSource hikari) {</span>
-<span class="fc" id="L49">            Gauge.builder(&quot;crdb_pool_active_connections&quot;, hikari, CrdbMetrics::activeConnections)</span>
-<span class="fc" id="L50">                    .description(&quot;Conexiones activas del pool HikariCP hacia CockroachDB&quot;)</span>
-<span class="fc" id="L51">                    .register(registry);</span>
+<span class="fc bfc" id="L49" title="All 2 branches covered.">        if (dataSource instanceof HikariDataSource hikari) {</span>
+<span class="fc" id="L50">            Gauge.builder(&quot;crdb_pool_active_connections&quot;, hikari, CrdbMetrics::activeConnections)</span>
+<span class="fc" id="L51">                    .description(&quot;Conexiones activas del pool HikariCP hacia CockroachDB&quot;)</span>
+<span class="fc" id="L52">                    .register(registry);</span>
         }
-<span class="fc" id="L53">    }</span>
+<span class="fc" id="L54">    }</span>
 
     private static double activeConnections(HikariDataSource hikari) {
-<span class="fc" id="L56">        HikariPoolMXBean pool = hikari.getHikariPoolMXBean();</span>
-<span class="pc bpc" id="L57" title="1 of 2 branches missed.">        return pool != null ? pool.getActiveConnections() : 0;</span>
+<span class="fc" id="L57">        HikariPoolMXBean pool = hikari.getHikariPoolMXBean();</span>
+<span class="pc bpc" id="L58" title="1 of 2 branches missed.">        return pool != null ? pool.getActiveConnections() : 0;</span>
     }
 
     public Timer queryDurationTimer() {
-<span class="fc" id="L61">        return queryDuration;</span>
+<span class="fc" id="L62">        return queryDuration;</span>
     }
 
+    @Override
     public void incrementTransactionRetries() {
-<span class="fc" id="L65">        transactionRetries.increment();</span>
-<span class="fc" id="L66">    }</span>
+<span class="fc" id="L67">        transactionRetries.increment();</span>
+<span class="fc" id="L68">    }</span>
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

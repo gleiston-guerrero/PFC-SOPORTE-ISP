@@ -1,8 +1,30 @@
 <?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="es"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UpdateStatusRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">ticket-service</a> &gt; <a href="index.source.html" class="el_package">ec.edu.uteq.soporte.ticketservice.presentation.dto</a> &gt; <span class="el_source">UpdateStatusRequest.java</span></div><h1>UpdateStatusRequest.java</h1><pre class="source lang-java linenums">package ec.edu.uteq.soporte.ticketservice.presentation.dto;
 
 import ec.edu.uteq.soporte.ticketservice.domain.TicketStatus;
+import jakarta.validation.constraints.DecimalMax;
+import jakarta.validation.constraints.DecimalMin;
 import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
 
-<span class="nc" id="L6">public record UpdateStatusRequest(@NotNull TicketStatus status) {</span>
+/**
+ * evidencePhotoBase64/latitude/longitude son opcionales (Entregable 10 de la guia de cierre):
+ * solo los manda el movil en el cierre en sitio (status = RESUELTO). El resto de transiciones
+ * de estado (ASIGNADO, EN_PROGRESO, etc.) los deja en null. Las cotas de latitude/longitude
+ * son el rango valido de coordenadas geograficas, no el area de cobertura del ISP -- rechazar
+ * aqui solo lo geometricamente imposible; el limite de tamano en evidencePhotoBase64 (unos 6 MB
+ * decodificados) cubre una foto real sin comprimir (~2,4 MB, ~3,2 MB en Base64) con margen,
+ * evitando aceptar un payload arbitrariamente grande.
+ */
+<span class="fc" id="L18">public record UpdateStatusRequest(</span>
+        @NotNull TicketStatus status,
+        @Size(max = 8_000_000, message = &quot;evidencePhotoBase64 supera el tamano maximo permitido&quot;)
+        String evidencePhotoBase64,
+        @DecimalMin(value = &quot;-90.0&quot;, message = &quot;latitude fuera de rango [-90, 90]&quot;)
+        @DecimalMax(value = &quot;90.0&quot;, message = &quot;latitude fuera de rango [-90, 90]&quot;)
+        Double latitude,
+        @DecimalMin(value = &quot;-180.0&quot;, message = &quot;longitude fuera de rango [-180, 180]&quot;)
+        @DecimalMax(value = &quot;180.0&quot;, message = &quot;longitude fuera de rango [-180, 180]&quot;)
+        Double longitude
+) {
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

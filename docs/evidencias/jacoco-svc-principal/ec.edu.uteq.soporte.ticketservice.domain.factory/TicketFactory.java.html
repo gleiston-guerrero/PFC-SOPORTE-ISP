@@ -4,7 +4,6 @@ import ec.edu.uteq.soporte.ticketservice.domain.Ticket;
 import ec.edu.uteq.soporte.ticketservice.domain.TicketStatus;
 import ec.edu.uteq.soporte.ticketservice.domain.Zone;
 import ec.edu.uteq.soporte.ticketservice.domain.policy.SlaPolicy;
-import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
 import java.util.UUID;
@@ -18,30 +17,32 @@ import java.util.UUID;
  * Con la fabrica, &quot;crear un ticket nuevo&quot; es una sola operacion con nombre, reutilizable desde
  * cualquier otro punto de entrada que el sistema necesite en el futuro (alta administrativa,
  * importacion masiva, etc.) sin duplicar las reglas de creacion.
+ *
+ * Registrado como bean de Spring en infrastructure/config/DomainBeansConfig.java, no aqui --
+ * domain no depende del framework.
  */
-@Component
 public class TicketFactory {
 
     private final SlaPolicy defaultSlaPolicy;
 
-<span class="fc" id="L27">    public TicketFactory(SlaPolicy defaultSlaPolicy) {</span>
-<span class="fc" id="L28">        this.defaultSlaPolicy = defaultSlaPolicy;</span>
-<span class="fc" id="L29">    }</span>
+<span class="fc" id="L28">    public TicketFactory(SlaPolicy defaultSlaPolicy) {</span>
+<span class="fc" id="L29">        this.defaultSlaPolicy = defaultSlaPolicy;</span>
+<span class="fc" id="L30">    }</span>
 
     public Ticket crearNuevo(Zone zone, UUID clientId, String description) {
-<span class="fc" id="L32">        OffsetDateTime now = OffsetDateTime.now();</span>
-<span class="fc" id="L33">        return Ticket.builder()</span>
-<span class="fc" id="L34">                .id(UUID.randomUUID())</span>
-<span class="fc" id="L35">                .zone(zone)</span>
-<span class="fc" id="L36">                .clientId(clientId)</span>
-<span class="fc" id="L37">                .status(TicketStatus.NUEVO)</span>
-<span class="fc" id="L38">                .description(description)</span>
-<span class="fc" id="L39">                .createdAt(now)</span>
+<span class="fc" id="L33">        OffsetDateTime now = OffsetDateTime.now();</span>
+<span class="fc" id="L34">        return Ticket.builder()</span>
+<span class="fc" id="L35">                .id(UUID.randomUUID())</span>
+<span class="fc" id="L36">                .zone(zone)</span>
+<span class="fc" id="L37">                .clientId(clientId)</span>
+<span class="fc" id="L38">                .status(TicketStatus.NUEVO)</span>
+<span class="fc" id="L39">                .description(description)</span>
+<span class="fc" id="L40">                .createdAt(now)</span>
                 // DefaultSlaPolicy ignora el argumento (SLA plano de 24h, todavia sin
                 // prioridad real que consultar) -- null es seguro solo con esa estrategia.
-<span class="fc" id="L42">                .slaDeadline(now.plus(defaultSlaPolicy.slaFor(null)))</span>
-<span class="fc" id="L43">                .slaBreached(false)</span>
-<span class="fc" id="L44">                .build();</span>
+<span class="fc" id="L43">                .slaDeadline(now.plus(defaultSlaPolicy.slaFor(null)))</span>
+<span class="fc" id="L44">                .slaBreached(false)</span>
+<span class="fc" id="L45">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

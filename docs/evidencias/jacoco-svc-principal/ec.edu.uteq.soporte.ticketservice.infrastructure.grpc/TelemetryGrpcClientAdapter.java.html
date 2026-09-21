@@ -50,11 +50,11 @@ public class TelemetryGrpcClientAdapter implements TelemetryQueryPort {
             // plazo vencido para siempre despues de los primeros 3 segundos de vida del bean.
 <span class="fc" id="L51">            EventosResponse response = stub.withDeadlineAfter(3, TimeUnit.SECONDS).getEventosPorZona(request);</span>
 <span class="fc" id="L52">            return response.getEventsList().stream().anyMatch(e -&gt; &quot;EQUIPO&quot;.equals(e.getType()));</span>
-<span class="nc" id="L53">        } catch (StatusRuntimeException e) {</span>
+<span class="fc" id="L53">        } catch (StatusRuntimeException e) {</span>
             // Canal caido o con timeout: se trata como &quot;sin evidencia&quot;, nunca se propaga --
             // ver TelemetryQueryPort y ADR-0004 (nunca bloquear/revertir la creacion del ticket).
-<span class="nc" id="L56">            LOGGER.log(Level.WARNING, &quot;telemetry-service no respondio, se asume sin evidencia: &quot; + e.getStatus(), e);</span>
-<span class="nc" id="L57">            return false;</span>
+<span class="fc" id="L56">            LOGGER.log(Level.WARNING, &quot;telemetry-service no respondio, se asume sin evidencia: &quot; + e.getStatus(), e);</span>
+<span class="fc" id="L57">            return false;</span>
         }
     }
 

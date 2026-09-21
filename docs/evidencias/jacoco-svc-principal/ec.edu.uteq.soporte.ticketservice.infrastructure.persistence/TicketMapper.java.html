@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 <span class="fc" id="L8">public class TicketMapper {</span>
 
     public Ticket toDomain(TicketJpaEntity entity) {
-<span class="pc bpc" id="L11" title="1 of 2 branches missed.">        if (entity == null) {</span>
-<span class="nc" id="L12">            return null;</span>
+<span class="fc bfc" id="L11" title="All 2 branches covered.">        if (entity == null) {</span>
+<span class="fc" id="L12">            return null;</span>
         }
 <span class="fc" id="L14">        return Ticket.builder()</span>
 <span class="fc" id="L15">                .createdAt(entity.getCreatedAt())</span>
@@ -24,27 +24,33 @@ import org.springframework.stereotype.Component;
 <span class="fc" id="L24">                .slaDeadline(entity.getSlaDeadline())</span>
 <span class="fc" id="L25">                .resolvedAt(entity.getResolvedAt())</span>
 <span class="fc" id="L26">                .slaBreached(entity.isSlaBreached())</span>
-<span class="fc" id="L27">                .build();</span>
+<span class="fc" id="L27">                .evidencePhoto(entity.getEvidencePhoto())</span>
+<span class="fc" id="L28">                .evidenceLatitude(entity.getEvidenceLatitude())</span>
+<span class="fc" id="L29">                .evidenceLongitude(entity.getEvidenceLongitude())</span>
+<span class="fc" id="L30">                .build();</span>
     }
 
     public TicketJpaEntity toEntity(Ticket ticket) {
-<span class="pc bpc" id="L31" title="1 of 2 branches missed.">        if (ticket == null) {</span>
-<span class="nc" id="L32">            return null;</span>
+<span class="fc bfc" id="L34" title="All 2 branches covered.">        if (ticket == null) {</span>
+<span class="fc" id="L35">            return null;</span>
         }
-<span class="fc" id="L34">        return TicketJpaEntity.builder()</span>
-<span class="fc" id="L35">                .createdAt(ticket.getCreatedAt())</span>
-<span class="fc" id="L36">                .id(ticket.getId())</span>
-<span class="fc" id="L37">                .zone(ticket.getZone())</span>
-<span class="fc" id="L38">                .clientId(ticket.getClientId())</span>
-<span class="fc" id="L39">                .technicianId(ticket.getTechnicianId())</span>
-<span class="fc" id="L40">                .category(ticket.getCategory())</span>
-<span class="fc" id="L41">                .priority(ticket.getPriority())</span>
-<span class="fc" id="L42">                .status(ticket.getStatus())</span>
-<span class="fc" id="L43">                .description(ticket.getDescription())</span>
-<span class="fc" id="L44">                .slaDeadline(ticket.getSlaDeadline())</span>
-<span class="fc" id="L45">                .resolvedAt(ticket.getResolvedAt())</span>
-<span class="fc" id="L46">                .slaBreached(ticket.isSlaBreached())</span>
-<span class="fc" id="L47">                .build();</span>
+<span class="fc" id="L37">        return TicketJpaEntity.builder()</span>
+<span class="fc" id="L38">                .createdAt(ticket.getCreatedAt())</span>
+<span class="fc" id="L39">                .id(ticket.getId())</span>
+<span class="fc" id="L40">                .zone(ticket.getZone())</span>
+<span class="fc" id="L41">                .clientId(ticket.getClientId())</span>
+<span class="fc" id="L42">                .technicianId(ticket.getTechnicianId())</span>
+<span class="fc" id="L43">                .category(ticket.getCategory())</span>
+<span class="fc" id="L44">                .priority(ticket.getPriority())</span>
+<span class="fc" id="L45">                .status(ticket.getStatus())</span>
+<span class="fc" id="L46">                .description(ticket.getDescription())</span>
+<span class="fc" id="L47">                .slaDeadline(ticket.getSlaDeadline())</span>
+<span class="fc" id="L48">                .resolvedAt(ticket.getResolvedAt())</span>
+<span class="fc" id="L49">                .slaBreached(ticket.isSlaBreached())</span>
+<span class="fc" id="L50">                .evidencePhoto(ticket.getEvidencePhoto())</span>
+<span class="fc" id="L51">                .evidenceLatitude(ticket.getEvidenceLatitude())</span>
+<span class="fc" id="L52">                .evidenceLongitude(ticket.getEvidenceLongitude())</span>
+<span class="fc" id="L53">                .build();</span>
     }
 }
 </pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
