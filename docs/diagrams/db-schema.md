@@ -1,10 +1,13 @@
 # Esquema de `ticket_db` (CockroachDB, cluster de 3 nodos)
 
-Corresponde a la migración Flyway `services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql`
-(Entregable 5 de la guía de cierre). `tickets` es la tabla de mayor cardinalidad y la
-única fragmentada (`PARTITION BY RANGE (created_at)`, ver
-[ADR-0003](../adr/0003-sharding-policy.md)); `technicians` es una dimensión pequeña sin
-particionar.
+Corresponde a las migraciones Flyway `services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql`
+(las cinco tablas, Entregable 5 de la guía de cierre) y `V3__add_close_evidence.sql` (las tres
+columnas de evidencia de `tickets`, Entregable 10 — `V2__configure_ticket_zone.sql` no cambia
+columnas, solo la política de replicación, ver la sección "Diseño del esquema y fragmentación"
+del manuscrito, `docs/latex/secciones/diseno_esquema.tex`). `tickets` es la tabla de mayor
+cardinalidad y la única fragmentada (`PARTITION BY RANGE
+(created_at)`, ver [ADR-0003](../adr/0003-sharding-policy.md)); `technicians`, `incidencias` e
+`incidencia_tickets` son dimensiones pequeñas sin particionar.
 
 ```mermaid
 erDiagram
@@ -21,6 +24,9 @@ erDiagram
         TIMESTAMPTZ sla_deadline
         TIMESTAMPTZ resolved_at
         BOOL sla_breached
+        BYTES evidence_photo "nullable, V3 -- foto del cierre en sitio, solo TECNICO"
+        FLOAT8 evidence_latitude "nullable, V3 -- rango [-90,90] validado en la API"
+        FLOAT8 evidence_longitude "nullable, V3 -- rango [-180,180] validado en la API"
     }
 
     TECHNICIANS {
@@ -29,6 +35,18 @@ erDiagram
         STRING zone "zona donde opera (no relacionado a la particion de tickets)"
         STRING specialty
         BOOL active
+    }
+
+    INCIDENCIAS {
+        UUID id PK "gen_random_uuid()"
+        STRING zone "indexado junto con created_at (idx_incidencias_zone_created_at)"
+        TIMESTAMPTZ created_at "indexado junto con zone"
+        STRING correl_mode "c0 | c1 | c2 -- estrategia CORREL con que se abrio"
+    }
+
+    INCIDENCIA_TICKETS {
+        UUID incidencia_id PK, FK "referencia incidencias(id)"
+        UUID ticket_id PK "NOT NULL, sin FK declarada a tickets(id) -- distinta base logica dentro del mismo cluster"
     }
 
     NETWORK_INCIDENTS_SUMMARY {
@@ -41,7 +59,13 @@ erDiagram
     }
 
     TICKETS }o--o| TECHNICIANS : "technician_id -> id"
+    INCIDENCIA_TICKETS }o--|| INCIDENCIAS : "incidencia_id -> id"
 ```
+
+`incidencia_tickets.ticket_id` no lleva una restricción `REFERENCES tickets(id)` real en
+`V1__init_ticket_schema.sql` —se deja como `UUID NOT NULL` simple—, así que el diagrama no
+dibuja esa relación como una FK aplicada por la base; la integridad la mantiene la lógica de
+`CorrelationService` (Sección de Arquitectura), no una restricción de esquema.
 
 ## Notas de diseño
 
