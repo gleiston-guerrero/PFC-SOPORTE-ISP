@@ -176,6 +176,44 @@ class AuthGatewayFilterTest {
     }
 
     @Test
+    void laLineaDeAccesoLlevaElMismoTraceIdQueElMdcDeLaPeticion() throws Exception {
+        // aplicacion_movil.tex afirma que la linea de ticket-service.access es "correlacionable
+        // por trace_id ... verificado con una prueba dedicada", pero la prueba anterior
+        // (unaPeticionAutorizadaEscribeLaLineaDeAccesoConMetodoRutaEstadoYUsuario) nunca mira
+        // trace_id -- una revision externa lo encontro. logback-spring.xml correlaciona por MDC
+        // (includeMdcKeyName trace_id), no por el mensaje formateado: en produccion lo puebla la
+        // instrumentacion de OpenTelemetry antes de que la peticion llegue al filtro; aqui se
+        // simula ese mismo mecanismo poniendo el MDC a mano y comprobando que Logback lo adjunta
+        // al evento capturado, que es la garantia real de correlacion (el "de la misma linea de
+        // Hibernate SQL" que documenta AuthGatewayFilter.java:42-44 depende de ese mismo MDC).
+        ch.qos.logback.classic.Logger logger =
+                (ch.qos.logback.classic.Logger) org.slf4j.LoggerFactory.getLogger("ticket-service.access");
+        ch.qos.logback.core.read.ListAppender<ch.qos.logback.classic.spi.ILoggingEvent> appender =
+                new ch.qos.logback.core.read.ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+        String traceIdEsperado = UUID.randomUUID().toString();
+        org.slf4j.MDC.put("trace_id", traceIdEsperado);
+        try {
+            UUID userId = UUID.randomUUID();
+            UUID ticketId = UUID.randomUUID();
+            proximaRespuesta.set(respuestaValidaJson(userId, "TECNICO", "QUEVEDO_SUR"));
+            MockHttpServletRequest request = new MockHttpServletRequest("PATCH", "/api/v1/tickets/" + ticketId);
+            request.addHeader("Authorization", "Bearer token-valido");
+            MockHttpServletResponse response = new MockHttpServletResponse();
+            response.setStatus(200);
+
+            filtro().doFilterInternal(request, response, new MockFilterChain());
+
+            assertThat(appender.list).hasSize(1);
+            assertThat(appender.list.get(0).getMDCPropertyMap()).containsEntry("trace_id", traceIdEsperado);
+        } finally {
+            org.slf4j.MDC.remove("trace_id");
+            logger.detachAppender(appender);
+        }
+    }
+
+    @Test
     void unaZonaDesconocidaSeTrataComoSinZonaEnVezDeFallar() throws Exception {
         // Fail-closed deliberado (ver comentario de parseZone en produccion): una zona que
         // el enum no reconoce no debe tumbar la peticion con un error de deserializacion,
