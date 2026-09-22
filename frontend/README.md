@@ -1,14 +1,27 @@
 # frontend — Panel de Tickets (equipo ACC)
 
+> **Obsoleto desde la Entrega 4** (revisión propia posterior, no parte de esta corrección
+> original): este dashboard vanilla es el cliente web de la Entrega 2/3, reemplazado por
+> `apps/web` (React) como frontend oficial — así lo declara
+> `docs/diagrams/c4-nivel2-contenedores.md` ("se retira el `frontend` HTML/CSS/JS vanilla"). Se
+> deja en el repositorio como referencia histórica, no como una ruta soportada. El modo "contra
+> el backend real" de abajo **ya no funciona tal cual está escrito**: `CorsConfig.java`, la
+> clase que habilitaba CORS para que este dashboard (servido en un puerto aparte, 5500) pudiera
+> llamar a `ticket-service` en 8002, se retiró del código — no se necesita para `apps/web`,
+> que pasa todo por `api-gateway` en el mismo origen. El modo demo sin backend (`test/mock_server.py`,
+> más abajo) sigue funcionando porque no depende de CORS.
+
 Dashboard estático (HTML + CSS + JS vanilla, sin build step) que consume la API real de
 `ticket-service`. Pensado para mostrar el sistema en vivo: KPIs, distribución de tickets por
 zona/estado (ligado a la fragmentación de CockroachDB), y un tablero Kanban editable.
 
-## Cómo correrlo contra el backend real
+## Cómo correrlo contra el backend real (obsoleto, ver nota arriba)
 
 1. Levantar el cluster CockroachDB + `ticket-service` (ver `../db-cluster/README.md` y
-   `../services/svc-principal/README.md`). El microservicio ya tiene CORS habilitado
-   (`CorsConfig.java`) para que este frontend pueda llamarlo desde otro puerto.
+   `../services/svc-principal/README.md`). **Ya no tiene CORS habilitado** (la clase
+   `CorsConfig.java` que esto asumía se retiró del código de `ticket-service`): sin volver a
+   agregar una configuración de CORS al microservicio, el navegador rechazará las llamadas de
+   este dashboard por origen cruzado (puerto 5500 → 8002).
 2. Servir esta carpeta como archivos estáticos — cualquiera de estas opciones funciona:
    - Extensión **Live Server** de VS Code: clic derecho sobre `index.html` → "Open with Live Server".
    - `python3 -m http.server 5500` desde esta carpeta, y abrir `http://localhost:5500`.

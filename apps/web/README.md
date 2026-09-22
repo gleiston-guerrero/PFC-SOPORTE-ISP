@@ -1,32 +1,33 @@
-# React + TypeScript + Vite
+# apps/web — Consola web (equipo ACC)
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+Frontend oficial del sistema desde la Entrega 4 (reemplaza al `frontend/` vanilla de Entregas
+2/3, ver `docs/diagrams/c4-nivel2-contenedores.md`). React 18 + TypeScript en modo estricto sobre
+Vite, arquitectura por características (`console`, `admin`, `reports`, `auth` en
+`src/features/`), empaquetado en un Dockerfile *multi-stage* (`nginx:alpine` en tiempo de
+ejecución). Detalle completo — rutas, control de acceso, internacionalización, cobertura — en la
+Sección "Aplicación web" del manuscrito (`docs/latex/secciones/aplicacion_web.tex`).
 
-Currently, two official plugins are available:
+> Este archivo reemplaza el README genérico que deja `npm create vite` al crear el proyecto
+> (mencionaba Oxlint, que este proyecto no usa — el linter real es ESLint, ver abajo).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Cómo correrlo
 
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev              # servidor de desarrollo (Vite)
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+Necesita `api-gateway` corriendo en `http://localhost:8000` (ver `docker-compose.yml` en la raíz
+del repo) para que las llamadas a la API funcionen.
+
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `npm run dev` | Servidor de desarrollo con HMR |
+| `npm run build` | `tsc -b && vite build` — build de producción |
+| `npm run lint` | ESLint (`--max-warnings 0`, reglas de `@typescript-eslint`) |
+| `npm test` | Pruebas unitarias (Vitest + Testing Library) |
+| `npm run test:coverage` | Igual, con reporte de cobertura (`v8`) |
+| `npm run format` | Prettier sobre `src/**/*.{ts,tsx,css}` |
+| `npm run test:e2e` | Pruebas E2E (Playwright), contra el *stack* real levantado |

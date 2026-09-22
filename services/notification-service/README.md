@@ -6,7 +6,9 @@ Node.js + Express, conectado a Kafka y a su propia base MongoDB.
 ## Responsabilidad
 
 Consume los eventos que publica `ticket-service`
-(`services/svc-principal/.../service/TicketService.java`) y despacha una notificacion al cliente
+(`services/svc-principal/.../application/command/*Handler.java` -- `CreateTicketHandler`,
+`UpdateTicketStatusHandler`, `AssignTechnicianHandler`, desde el refactor a 4 capas; antes
+vivian juntos en el monolítico `TicketService.java`) y despacha una notificacion al cliente
 por el canal adecuado:
 
 | Evento | Canal(es) |

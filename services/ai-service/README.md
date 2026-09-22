@@ -6,7 +6,8 @@ Python 3.11 + FastAPI, conectado a Kafka y a su propia base MongoDB.
 ## Responsabilidad
 
 Cierra la Saga por coreografia documentada en `ticket-service`
-(`services/svc-principal/.../service/TicketService.java`): cuando se crea un ticket, queda con
+(`services/svc-principal/.../application/command/CreateTicketHandler.java`, desde el refactor a
+4 capas — antes vivia en el monolítico `TicketService.java`): cuando se crea un ticket, queda con
 `category`/`priority` en `null` — este servicio consume el evento `ticket.created`, clasifica el
 ticket, y publica `ticket.classified` para que `ticket-service` complete esos campos (y recalcule
 el SLA con la prioridad real).

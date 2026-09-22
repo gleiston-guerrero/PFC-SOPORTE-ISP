@@ -7,11 +7,15 @@ conectado por JDBC al cluster CockroachDB del proyecto (carpeta `db-cluster/` en
 
 1. Instalar extensiones: **Extension Pack for Java** y **Spring Boot Extension Pack**.
 2. Abrir esta carpeta (`services/svc-principal`) o el repo completo en VS Code.
-3. Levantar primero el cluster CockroachDB (ver `../../db-cluster/README.md`), crear la base
-   vacía (`CREATE DATABASE IF NOT EXISTS ticket_db;`) y cargar `zones.sql` /
-   `seed_partitioned.sql` si hacen falta. El esquema de tablas (`db/migration/V1__init_ticket_schema.sql`)
-   ya no se carga a mano: lo aplica Flyway automáticamente al arrancar el servicio
-   (Entregable 5 de la guía de cierre).
+3. Levantar primero el cluster CockroachDB (ver `../../db-cluster/README.md`) y crear la base
+   vacía (`CREATE DATABASE IF NOT EXISTS ticket_db;`). Ni el esquema de tablas
+   (`db/migration/V1__init_ticket_schema.sql`) ni la política de replicación
+   (`V2__configure_ticket_zone.sql`) ni las columnas de evidencia del cierre en sitio
+   (`V3__add_close_evidence.sql`) se cargan a mano: las tres las aplica Flyway automáticamente
+   al arrancar el servicio, en ese orden (Entregable 5 de la guía de cierre) — el guion suelto
+   `zones.sql` que esto pedía cargar manualmente ya no existe en el repositorio. Si hacen falta
+   datos de demostración, `db-cluster/scripts/seed_partitioned.sql` (150 000 filas) sigue siendo
+   manual, después de que el servicio haya arrancado al menos una vez y aplicado las migraciones.
 4. Correr `TicketServiceApplication.java` con el botón "Run" que aparece sobre el `main`, o:
    ```bash
    mvn spring-boot:run
