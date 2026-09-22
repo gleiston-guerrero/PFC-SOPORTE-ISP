@@ -215,9 +215,14 @@ caso.}
 \midrule
 \texttt{ticket-service} & 4 capas + 6 patrones GoF & \texttt{TicketService} mezclaba JPA, SLA y
   los tres casos de uso en una sola clase (ADR-0005) \\
-\texttt{auth-service} & 4 capas & \texttt{User}/\texttt{RefreshToken} eran entidades JPA
+\texttt{auth-service} & 4 capas + \texttt{DomainArchitectureTest} propio & \texttt{User}/\texttt{RefreshToken} eran entidades JPA
   directamente en el paquete \texttt{domain}; \texttt{AuthService} dependía de
-  \texttt{JpaRepository} sin un puerto intermedio \\
+  \texttt{JpaRepository} sin un puerto intermedio. Corrección posterior (ver más abajo):
+  \texttt{AuthService} también dependía directamente de
+  \texttt{infrastructure.security.JwtService},
+  \texttt{infrastructure.messaging.TechnicianEventPublisher} y cinco DTO de
+  \texttt{presentation.dto} — 38 violaciones reales que ninguna prueba detectaba porque este
+  servicio nunca tuvo su propio \texttt{DomainArchitectureTest} \\
 \texttt{report-service} & 4 capas & \texttt{ReportController} llamaba a
   \texttt{TicketSummaryRepository} (JPA) y filtraba en memoria directamente en la capa de
   presentación, sin capa de aplicación \\
@@ -230,6 +235,29 @@ caso.}
 \bottomrule
 \end{tabular}
 \end{table}
+
+Una revisión externa posterior aplicó a \texttt{auth-service} la misma regla
+\texttt{Architectures.layeredArchitecture()} que \texttt{ticket-service} ya tenía y encontró 38
+violaciones reales en \texttt{AuthService.java}: la clase de \texttt{application} importaba
+directamente \texttt{infrastructure.security.JwtService},
+\texttt{infrastructure.messaging.TechnicianEventPublisher} y los DTO de
+\texttt{presentation.dto} (\texttt{AuthResponse}, \texttt{UserResponse},
+\texttt{ValidateResponse}, \texttt{RegisterRequest}, \texttt{CreateUserRequest}) --
+\texttt{auth-service} nunca tuvo su propio \texttt{DomainArchitectureTest} que lo detectara, así
+que la afirmación anterior de "el mismo patrón" no estaba verificada, solo declarada. Se corrige
+con el mismo mecanismo de inversión de dependencias que \texttt{ticket-service}:
+\texttt{application/TokenIssuer.java} y \texttt{application/TechnicianCreatedNotifier.java} son
+los puertos que \texttt{AuthService} conoce ahora (\texttt{JwtService} y
+\texttt{TechnicianEventPublisher}, en \texttt{infrastructure}, los implementan); y
+\texttt{AuthService} ya no recibe ni devuelve DTO de \texttt{presentation} --recibe
+\texttt{RegisterCommand}/\texttt{CreateUserCommand} y devuelve
+\texttt{User}/\texttt{TokenPair}/\texttt{TokenValidation}, todos de \texttt{application}--, y es
+\texttt{AuthController}/\texttt{AdminUserController} quien mapea hacia/desde los DTO HTTP, mismo
+patrón que \texttt{TicketController} mapea \texttt{Ticket} a \texttt{TicketResponse}. Se agregó
+\texttt{auth-service/architecture/DomainArchitectureTest.java}, idéntico en estructura al de
+\texttt{ticket-service} (misma excepción declarada: \texttt{infrastructure} puede depender de
+\texttt{presentation} porque \texttt{SecurityConfig} reutiliza \texttt{ApiResponse} para sus
+respuestas 401/403), que pasa en verde (0 violaciones) sobre el código corregido.
 
 Ambos refactores se verificaron de punta a punta contra el sistema real, no solo con pruebas
 unitarias: se levantó cada servicio con su base CockroachDB y Kafka reales, y se ejercitaron en

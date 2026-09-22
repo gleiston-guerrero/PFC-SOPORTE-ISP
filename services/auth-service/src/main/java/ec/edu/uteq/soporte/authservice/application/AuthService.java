@@ -5,13 +5,6 @@ import ec.edu.uteq.soporte.authservice.domain.RefreshTokenRepository;
 import ec.edu.uteq.soporte.authservice.domain.Role;
 import ec.edu.uteq.soporte.authservice.domain.User;
 import ec.edu.uteq.soporte.authservice.domain.UserRepository;
-import ec.edu.uteq.soporte.authservice.infrastructure.messaging.TechnicianEventPublisher;
-import ec.edu.uteq.soporte.authservice.infrastructure.security.JwtService;
-import ec.edu.uteq.soporte.authservice.presentation.dto.AuthResponse;
-import ec.edu.uteq.soporte.authservice.presentation.dto.CreateUserRequest;
-import ec.edu.uteq.soporte.authservice.presentation.dto.RegisterRequest;
-import ec.edu.uteq.soporte.authservice.presentation.dto.UserResponse;
-import ec.edu.uteq.soporte.authservice.presentation.dto.ValidateResponse;
 import io.jsonwebtoken.Claims;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -36,9 +29,14 @@ import java.util.UUID;
  * clases de un solo metodo no habria aportado una separacion de responsabilidades
  * real -- es una decision de diseno declarada explicitamente (Seccion
  * "Arquitectura hexagonal extendida" del manuscrito), no una capa omitida por
- * descuido. Lo que si se aplico, igual que en ticket-service: el dominio (User,
- * RefreshToken) ya no conoce JPA, y este servicio ya no depende de Spring Data
- * directamente, solo de los puertos domain/UserRepository y domain/RefreshTokenRepository.
+ * descuido. Lo que si se aplico, igual que en ticket-service (Entregable 1 de la guia de
+ * cierre, extendido aqui): el dominio (User, RefreshToken) ya no conoce JPA; este servicio ya
+ * no depende de Spring Data directamente, solo de los puertos domain/UserRepository y
+ * domain/RefreshTokenRepository; y ya no depende de infrastructure (TokenIssuer/
+ * TechnicianCreatedNotifier son puertos de application, implementados por
+ * JwtService/TechnicianEventPublisher) ni de presentation (recibe y devuelve tipos propios de
+ * application -- RegisterCommand/CreateUserCommand/TokenPair/TokenValidation/User -- y el
+ * controlador mapea hacia/desde los DTO de presentation, mismo patron que TicketController).
  */
 @Service
 public class AuthService {
@@ -48,45 +46,44 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final RefreshTokenRepository refreshTokenRepository;
-    private final JwtService jwtService;
+    private final TokenIssuer tokenIssuer;
     private final PasswordEncoder passwordEncoder;
-    private final TechnicianEventPublisher technicianEventPublisher;
+    private final TechnicianCreatedNotifier technicianCreatedNotifier;
     private final SecureRandom secureRandom = new SecureRandom();
 
     public AuthService(UserRepository userRepository,
                         RefreshTokenRepository refreshTokenRepository,
-                        JwtService jwtService,
+                        TokenIssuer tokenIssuer,
                         PasswordEncoder passwordEncoder,
-                        TechnicianEventPublisher technicianEventPublisher) {
+                        TechnicianCreatedNotifier technicianCreatedNotifier) {
         this.userRepository = userRepository;
         this.refreshTokenRepository = refreshTokenRepository;
-        this.jwtService = jwtService;
+        this.tokenIssuer = tokenIssuer;
         this.passwordEncoder = passwordEncoder;
-        this.technicianEventPublisher = technicianEventPublisher;
+        this.technicianCreatedNotifier = technicianCreatedNotifier;
     }
 
     @Transactional
-    public UserResponse register(RegisterRequest request) {
-        return UserResponse.from(
-                createUser(request.email(), request.password(), request.fullName(), Role.CLIENTE, null));
+    public User register(RegisterCommand command) {
+        return createUser(command.email(), command.password(), command.fullName(), Role.CLIENTE, null);
     }
 
     @Transactional
-    public UserResponse createUserAsAdmin(CreateUserRequest request) {
-        validateZoneForRole(request.role(), request.zone());
+    public User createUserAsAdmin(CreateUserCommand command) {
+        validateZoneForRole(command.role(), command.zone());
         User created = createUser(
-                request.email(), request.password(), request.fullName(), request.role(), request.zone());
-        if (request.role() == Role.TECNICO) {
+                command.email(), command.password(), command.fullName(), command.role(), command.zone());
+        if (command.role() == Role.TECNICO) {
             // Publicar DESPUES de que la transaccion de creacion ya completo en memoria --
-            // si Kafka falla, technicianEventPublisher.publishCreated ya absorbe el error
-            // (ver su javadoc) y el alta del usuario en auth_db de todas formas es valida.
-            technicianEventPublisher.publishCreated(created);
+            // si Kafka falla, technicianCreatedNotifier.publishCreated ya absorbe el error
+            // (ver su implementacion) y el alta del usuario en auth_db de todas formas es valida.
+            technicianCreatedNotifier.publishCreated(created);
         }
-        return UserResponse.from(created);
+        return created;
     }
 
-    public List<UserResponse> listUsers() {
-        return userRepository.findAll().stream().map(UserResponse::from).toList();
+    public List<User> listUsers() {
+        return userRepository.findAll();
     }
 
     // TECNICO necesita una zona valida (para poder filtrar "tickets de mi zona" en
@@ -120,7 +117,7 @@ public class AuthService {
     }
 
     @Transactional
-    public AuthResponse login(String email, String rawPassword) {
+    public TokenPair login(String email, String rawPassword) {
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new InvalidCredentialsException("Credenciales invalidas"));
         if (!user.isActive()) {
@@ -137,7 +134,7 @@ public class AuthService {
     // de lo contrario Spring revertiria toda la transaccion (comportamiento por
     // defecto ante un RuntimeException) y la revocacion nunca llegaria a la base.
     @Transactional(noRollbackFor = TokenReuseDetectedException.class)
-    public AuthResponse refresh(String rawRefreshToken) {
+    public TokenPair refresh(String rawRefreshToken) {
         String hash = hashToken(rawRefreshToken);
         RefreshToken existing = refreshTokenRepository.findByTokenHash(hash)
                 .orElseThrow(() -> new InvalidTokenException("Refresh token invalido"));
@@ -161,7 +158,7 @@ public class AuthService {
         existing.setReplacedBy(issued.refreshTokenId());
         refreshTokenRepository.save(existing);
 
-        return issued.response();
+        return issued.pair();
     }
 
     @Transactional
@@ -175,11 +172,11 @@ public class AuthService {
         }
     }
 
-    public ValidateResponse validate(String bearerToken) {
-        Claims claims = jwtService.parseAndValidate(bearerToken);
+    public TokenValidation validate(String bearerToken) {
+        Claims claims = tokenIssuer.parseAndValidate(bearerToken);
         @SuppressWarnings("unchecked")
         List<String> permissions = (List<String>) claims.get("permissions", List.class);
-        return new ValidateResponse(
+        return new TokenValidation(
                 claims.getSubject(),
                 claims.get("email", String.class),
                 claims.get("role", String.class),
@@ -188,28 +185,28 @@ public class AuthService {
                 OffsetDateTime.ofInstant(claims.getExpiration().toInstant(), java.time.ZoneOffset.UTC));
     }
 
-    private AuthResponse issueTokenPair(User user) {
-        return issueTokenPairInternal(user).response();
+    private TokenPair issueTokenPair(User user) {
+        return issueTokenPairInternal(user).pair();
     }
 
     private IssuedPair issueTokenPairInternal(User user) {
-        JwtService.IssuedAccessToken accessToken = jwtService.generateAccessToken(user);
+        IssuedAccessToken accessToken = tokenIssuer.generateAccessToken(user);
         String rawRefreshToken = generateOpaqueToken();
 
         RefreshToken refreshToken = RefreshToken.builder()
                 .userId(user.getId())
                 .tokenHash(hashToken(rawRefreshToken))
                 .issuedAt(OffsetDateTime.now())
-                .expiresAt(OffsetDateTime.now().plus(jwtService.refreshTokenTtl()))
+                .expiresAt(OffsetDateTime.now().plus(tokenIssuer.refreshTokenTtl()))
                 .revoked(false)
                 .build();
         refreshToken = refreshTokenRepository.save(refreshToken);
 
-        AuthResponse response = new AuthResponse(accessToken.token(), rawRefreshToken, accessToken.expiresAt());
-        return new IssuedPair(response, refreshToken.getId());
+        TokenPair pair = new TokenPair(accessToken.token(), rawRefreshToken, accessToken.expiresAt());
+        return new IssuedPair(pair, refreshToken.getId());
     }
 
-    private record IssuedPair(AuthResponse response, UUID refreshTokenId) {
+    private record IssuedPair(TokenPair pair, UUID refreshTokenId) {
     }
 
     private void revokeAllForUser(UUID userId) {

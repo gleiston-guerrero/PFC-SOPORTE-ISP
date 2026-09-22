@@ -1,6 +1,7 @@
 package ec.edu.uteq.soporte.authservice.infrastructure.messaging;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import ec.edu.uteq.soporte.authservice.application.TechnicianCreatedNotifier;
 import ec.edu.uteq.soporte.authservice.domain.User;
 import ec.edu.uteq.soporte.authservice.domain.event.TechnicianCreatedEvent;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,7 +20,7 @@ import java.util.logging.Logger;
  * despues sin que el alta administrativa haya fallado a medias.
  */
 @Component
-public class TechnicianEventPublisher {
+public class TechnicianEventPublisher implements TechnicianCreatedNotifier {
 
     private static final String TOPIC_TECHNICIAN_CREATED = "technician.created";
     private static final Logger LOGGER = Logger.getLogger(TechnicianEventPublisher.class.getName());
@@ -32,6 +33,7 @@ public class TechnicianEventPublisher {
         this.objectMapper = objectMapper;
     }
 
+    @Override
     public void publishCreated(User technician) {
         TechnicianCreatedEvent event = new TechnicianCreatedEvent(
                 technician.getId().toString(), technician.getFullName(), technician.getZone());

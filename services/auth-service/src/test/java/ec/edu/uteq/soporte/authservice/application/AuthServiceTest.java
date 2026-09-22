@@ -5,13 +5,6 @@ import ec.edu.uteq.soporte.authservice.domain.RefreshTokenRepository;
 import ec.edu.uteq.soporte.authservice.domain.Role;
 import ec.edu.uteq.soporte.authservice.domain.User;
 import ec.edu.uteq.soporte.authservice.domain.UserRepository;
-import ec.edu.uteq.soporte.authservice.infrastructure.messaging.TechnicianEventPublisher;
-import ec.edu.uteq.soporte.authservice.infrastructure.security.JwtService;
-import ec.edu.uteq.soporte.authservice.presentation.dto.AuthResponse;
-import ec.edu.uteq.soporte.authservice.presentation.dto.CreateUserRequest;
-import ec.edu.uteq.soporte.authservice.presentation.dto.RegisterRequest;
-import ec.edu.uteq.soporte.authservice.presentation.dto.UserResponse;
-import ec.edu.uteq.soporte.authservice.presentation.dto.ValidateResponse;
 import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,8 +33,13 @@ import static org.mockito.Mockito.when;
 
 /**
  * Pruebas unitarias puras (sin contexto de Spring ni base de datos real), igual que
- * TicketServiceTest en ticket-service: puertos de dominio y JwtService mockeados,
- * BCryptPasswordEncoder real (es barato y no vale la pena mockearlo).
+ * TicketServiceTest en ticket-service: puertos de application (TokenIssuer,
+ * TechnicianCreatedNotifier) mockeados, BCryptPasswordEncoder real (es barato y no vale la pena
+ * mockearlo). Desde el Entregable 1 (extendido a auth-service) ya no mockea JwtService ni
+ * TechnicianEventPublisher directamente -- esta prueba en si formaba parte de las 28
+ * violaciones que una revision externa encontro al aplicar la regla de capas de ticket-service
+ * a este servicio, porque importaba infrastructure.security.JwtService e
+ * infrastructure.messaging.TechnicianEventPublisher desde application/ (el paquete de este test).
  */
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -53,10 +51,10 @@ class AuthServiceTest {
     private RefreshTokenRepository refreshTokenRepository;
 
     @Mock
-    private JwtService jwtService;
+    private TokenIssuer tokenIssuer;
 
     @Mock
-    private TechnicianEventPublisher technicianEventPublisher;
+    private TechnicianCreatedNotifier technicianCreatedNotifier;
 
     private final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
 
@@ -65,7 +63,7 @@ class AuthServiceTest {
     @BeforeEach
     void setUp() {
         authService = new AuthService(
-                userRepository, refreshTokenRepository, jwtService, passwordEncoder, technicianEventPublisher);
+                userRepository, refreshTokenRepository, tokenIssuer, passwordEncoder, technicianCreatedNotifier);
 
         // Simulan lo que Hibernate hace de verdad al persistir (asignar el id generado);
         // lenient() porque no todos los tests ejercitan ambos repositorios.
@@ -89,9 +87,9 @@ class AuthServiceTest {
     void registerHashesPasswordAndForcesClienteRole() {
         when(userRepository.existsByEmail("nuevo@test.com")).thenReturn(false);
 
-        UserResponse response = authService.register(new RegisterRequest("nuevo@test.com", "Passw0rd!", "Nuevo Usuario"));
+        User created = authService.register(new RegisterCommand("nuevo@test.com", "Passw0rd!", "Nuevo Usuario"));
 
-        assertThat(response.role()).isEqualTo(Role.CLIENTE.name());
+        assertThat(created.getRole()).isEqualTo(Role.CLIENTE);
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
         verify(userRepository).save(captor.capture());
@@ -101,7 +99,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void listUsersReturnsEveryUserMappedToUserResponse() {
+    void listUsersReturnsEveryUser() {
         User cliente = activeUser("cliente@test.com", "Passw0rd!");
         User tecnico = User.builder()
                 .id(UUID.randomUUID())
@@ -114,11 +112,11 @@ class AuthServiceTest {
                 .build();
         when(userRepository.findAll()).thenReturn(List.of(cliente, tecnico));
 
-        List<UserResponse> users = authService.listUsers();
+        List<User> users = authService.listUsers();
 
         assertThat(users).hasSize(2);
-        assertThat(users).extracting(UserResponse::email).containsExactlyInAnyOrder("cliente@test.com", "tec@test.com");
-        assertThat(users).filteredOn(u -> u.role().equals("TECNICO")).extracting(UserResponse::zone)
+        assertThat(users).extracting(User::getEmail).containsExactlyInAnyOrder("cliente@test.com", "tec@test.com");
+        assertThat(users).filteredOn(u -> u.getRole() == Role.TECNICO).extracting(User::getZone)
                 .containsExactly("QUEVEDO_NORTE");
     }
 
@@ -127,21 +125,21 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("tec@test.com")).thenReturn(false);
 
         assertThatThrownBy(() -> authService.createUserAsAdmin(
-                new CreateUserRequest("tec@test.com", "Passw0rd!", "Tecnico Uno", Role.TECNICO, null)))
+                new CreateUserCommand("tec@test.com", "Passw0rd!", "Tecnico Uno", Role.TECNICO, null)))
                 .isInstanceOf(InvalidRequestException.class);
         assertThatThrownBy(() -> authService.createUserAsAdmin(
-                new CreateUserRequest("tec@test.com", "Passw0rd!", "Tecnico Uno", Role.TECNICO, "ZONA_INVENTADA")))
+                new CreateUserCommand("tec@test.com", "Passw0rd!", "Tecnico Uno", Role.TECNICO, "ZONA_INVENTADA")))
                 .isInstanceOf(InvalidRequestException.class);
 
-        UserResponse response = authService.createUserAsAdmin(
-                new CreateUserRequest("tec@test.com", "Passw0rd!", "Tecnico Uno", Role.TECNICO, "QUEVEDO_NORTE"));
-        assertThat(response.zone()).isEqualTo("QUEVEDO_NORTE");
+        User created = authService.createUserAsAdmin(
+                new CreateUserCommand("tec@test.com", "Passw0rd!", "Tecnico Uno", Role.TECNICO, "QUEVEDO_NORTE"));
+        assertThat(created.getZone()).isEqualTo("QUEVEDO_NORTE");
     }
 
     @Test
     void createUserAsAdminRejectsZoneForNonTecnicoRoles() {
         assertThatThrownBy(() -> authService.createUserAsAdmin(
-                new CreateUserRequest("otro@test.com", "Passw0rd!", "Otro", Role.CLIENTE, "QUEVEDO_NORTE")))
+                new CreateUserCommand("otro@test.com", "Passw0rd!", "Otro", Role.CLIENTE, "QUEVEDO_NORTE")))
                 .isInstanceOf(InvalidRequestException.class);
     }
 
@@ -150,18 +148,18 @@ class AuthServiceTest {
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
 
         authService.createUserAsAdmin(
-                new CreateUserRequest("tec2@test.com", "Passw0rd!", "Tecnico Dos", Role.TECNICO, "QUEVEDO_SUR"));
+                new CreateUserCommand("tec2@test.com", "Passw0rd!", "Tecnico Dos", Role.TECNICO, "QUEVEDO_SUR"));
 
         ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-        verify(technicianEventPublisher).publishCreated(captor.capture());
+        verify(technicianCreatedNotifier).publishCreated(captor.capture());
         assertThat(captor.getValue().getEmail()).isEqualTo("tec2@test.com");
 
         authService.createUserAsAdmin(
-                new CreateUserRequest("cliente2@test.com", "Passw0rd!", "Cliente Dos", Role.CLIENTE, null));
+                new CreateUserCommand("cliente2@test.com", "Passw0rd!", "Cliente Dos", Role.CLIENTE, null));
 
         // Sigue habiendo una sola invocacion (la del TECNICO de arriba) -- CLIENTE/ADMIN
         // nunca disparan la sincronizacion con ticket-service.
-        verify(technicianEventPublisher, org.mockito.Mockito.times(1)).publishCreated(any(User.class));
+        verify(technicianCreatedNotifier, org.mockito.Mockito.times(1)).publishCreated(any(User.class));
     }
 
     @Test
@@ -170,10 +168,10 @@ class AuthServiceTest {
         when(userRepository.findByEmail("cliente@test.com")).thenReturn(Optional.of(user));
         stubTokenIssuance();
 
-        AuthResponse response = authService.login("cliente@test.com", "Passw0rd!");
+        TokenPair pair = authService.login("cliente@test.com", "Passw0rd!");
 
-        assertThat(response.accessToken()).isEqualTo("fake-access-token");
-        assertThat(response.refreshToken()).isNotBlank();
+        assertThat(pair.accessToken()).isEqualTo("fake-access-token");
+        assertThat(pair.refreshToken()).isNotBlank();
     }
 
     @Test
@@ -211,9 +209,9 @@ class AuthServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
         stubTokenIssuance();
 
-        AuthResponse response = authService.refresh("token-crudo-viejo");
+        TokenPair pair = authService.refresh("token-crudo-viejo");
 
-        assertThat(response.accessToken()).isEqualTo("fake-access-token");
+        assertThat(pair.accessToken()).isEqualTo("fake-access-token");
         assertThat(existing.isRevoked()).isTrue();
         assertThat(existing.getReplacedBy()).isNotNull();
     }
@@ -256,7 +254,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("existente@test.com")).thenReturn(true);
 
         assertThatThrownBy(() -> authService.register(
-                new RegisterRequest("existente@test.com", "Passw0rd!", "Alguien")))
+                new RegisterCommand("existente@test.com", "Passw0rd!", "Alguien")))
                 .isInstanceOf(DuplicateEmailException.class);
     }
 
@@ -341,7 +339,7 @@ class AuthServiceTest {
     }
 
     @Test
-    void validateParsesClaimsIntoValidateResponse() {
+    void validateParsesClaimsIntoTokenValidation() {
         Claims claims = org.mockito.Mockito.mock(Claims.class);
         when(claims.getSubject()).thenReturn("user-id-123");
         when(claims.get("email", String.class)).thenReturn("cliente@test.com");
@@ -349,20 +347,20 @@ class AuthServiceTest {
         when(claims.get("zone", String.class)).thenReturn("QUEVEDO_NORTE");
         when(claims.get("permissions", List.class)).thenReturn(List.of("ticket:read:zone"));
         when(claims.getExpiration()).thenReturn(Date.from(OffsetDateTime.now().plusMinutes(15).toInstant()));
-        when(jwtService.parseAndValidate("Bearer abc.def.ghi")).thenReturn(claims);
+        when(tokenIssuer.parseAndValidate("Bearer abc.def.ghi")).thenReturn(claims);
 
-        ValidateResponse response = authService.validate("Bearer abc.def.ghi");
+        TokenValidation validation = authService.validate("Bearer abc.def.ghi");
 
-        assertThat(response.userId()).isEqualTo("user-id-123");
-        assertThat(response.role()).isEqualTo("TECNICO");
-        assertThat(response.zone()).isEqualTo("QUEVEDO_NORTE");
-        assertThat(response.permissions()).containsExactly("ticket:read:zone");
+        assertThat(validation.userId()).isEqualTo("user-id-123");
+        assertThat(validation.role()).isEqualTo("TECNICO");
+        assertThat(validation.zone()).isEqualTo("QUEVEDO_NORTE");
+        assertThat(validation.permissions()).containsExactly("ticket:read:zone");
     }
 
     private void stubTokenIssuance() {
-        when(jwtService.generateAccessToken(any(User.class)))
-                .thenReturn(new JwtService.IssuedAccessToken("fake-access-token", OffsetDateTime.now().plusMinutes(15)));
-        when(jwtService.refreshTokenTtl()).thenReturn(Duration.ofDays(7));
+        when(tokenIssuer.generateAccessToken(any(User.class)))
+                .thenReturn(new IssuedAccessToken("fake-access-token", OffsetDateTime.now().plusMinutes(15)));
+        when(tokenIssuer.refreshTokenTtl()).thenReturn(Duration.ofDays(7));
     }
 
     private User activeUser(String email, String rawPassword) {

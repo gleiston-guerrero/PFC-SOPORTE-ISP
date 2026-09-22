@@ -2,6 +2,10 @@ package ec.edu.uteq.soporte.authservice.presentation;
 
 import ec.edu.uteq.soporte.authservice.application.AuthService;
 import ec.edu.uteq.soporte.authservice.application.InvalidTokenException;
+import ec.edu.uteq.soporte.authservice.application.RegisterCommand;
+import ec.edu.uteq.soporte.authservice.application.TokenPair;
+import ec.edu.uteq.soporte.authservice.application.TokenValidation;
+import ec.edu.uteq.soporte.authservice.domain.User;
 import ec.edu.uteq.soporte.authservice.presentation.dto.ApiResponse;
 import ec.edu.uteq.soporte.authservice.presentation.dto.AuthResponse;
 import ec.edu.uteq.soporte.authservice.presentation.dto.LoginRequest;
@@ -33,17 +37,21 @@ public class AuthController {
     @PostMapping("/register")
     @ResponseStatus(HttpStatus.CREATED)
     public ApiResponse<UserResponse> register(@Valid @RequestBody RegisterRequest request) {
-        return ApiResponse.of(authService.register(request), "Usuario registrado");
+        RegisterCommand command = new RegisterCommand(request.email(), request.password(), request.fullName());
+        User created = authService.register(command);
+        return ApiResponse.of(UserResponse.from(created), "Usuario registrado");
     }
 
     @PostMapping("/login")
     public ApiResponse<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        return ApiResponse.of(authService.login(request.email(), request.password()), "Sesion iniciada");
+        TokenPair pair = authService.login(request.email(), request.password());
+        return ApiResponse.of(toAuthResponse(pair), "Sesion iniciada");
     }
 
     @PostMapping("/refresh")
     public ApiResponse<AuthResponse> refresh(@Valid @RequestBody RefreshRequest request) {
-        return ApiResponse.of(authService.refresh(request.refreshToken()), "Token renovado");
+        TokenPair pair = authService.refresh(request.refreshToken());
+        return ApiResponse.of(toAuthResponse(pair), "Token renovado");
     }
 
     @PostMapping("/logout")
@@ -61,6 +69,21 @@ public class AuthController {
             throw new InvalidTokenException("Encabezado Authorization ausente o mal formado");
         }
         String token = authorizationHeader.substring("Bearer ".length());
-        return ApiResponse.of(authService.validate(token), "Token valido");
+        TokenValidation validation = authService.validate(token);
+        return ApiResponse.of(toValidateResponse(validation), "Token valido");
+    }
+
+    private static AuthResponse toAuthResponse(TokenPair pair) {
+        return new AuthResponse(pair.accessToken(), pair.refreshToken(), pair.accessTokenExpiresAt());
+    }
+
+    private static ValidateResponse toValidateResponse(TokenValidation validation) {
+        return new ValidateResponse(
+                validation.userId(),
+                validation.email(),
+                validation.role(),
+                validation.zone(),
+                validation.permissions(),
+                validation.expiresAt());
     }
 }

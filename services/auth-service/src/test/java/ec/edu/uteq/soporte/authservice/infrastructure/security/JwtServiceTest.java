@@ -1,6 +1,7 @@
 package ec.edu.uteq.soporte.authservice.infrastructure.security;
 
 import ec.edu.uteq.soporte.authservice.application.InvalidTokenException;
+import ec.edu.uteq.soporte.authservice.application.IssuedAccessToken;
 import ec.edu.uteq.soporte.authservice.domain.PermissionCatalog;
 import ec.edu.uteq.soporte.authservice.domain.Role;
 import ec.edu.uteq.soporte.authservice.domain.User;
@@ -30,7 +31,7 @@ class JwtServiceTest {
                 .createdAt(OffsetDateTime.now())
                 .build();
 
-        JwtService.IssuedAccessToken issued = jwtService.generateAccessToken(user);
+        IssuedAccessToken issued = jwtService.generateAccessToken(user);
         Claims claims = jwtService.parseAndValidate(issued.token());
 
         assertThat(claims.getSubject()).isEqualTo(user.getId().toString());
@@ -80,7 +81,7 @@ class JwtServiceTest {
                 .createdAt(OffsetDateTime.now())
                 .build();
 
-        JwtService.IssuedAccessToken issued = jwtService.generateAccessToken(user);
+        IssuedAccessToken issued = jwtService.generateAccessToken(user);
 
         assertThatThrownBy(() -> jwtService.parseAndValidate(issued.token()))
                 .isInstanceOf(InvalidTokenException.class);

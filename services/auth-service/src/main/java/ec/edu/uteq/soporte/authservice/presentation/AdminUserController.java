@@ -1,6 +1,8 @@
 package ec.edu.uteq.soporte.authservice.presentation;
 
 import ec.edu.uteq.soporte.authservice.application.AuthService;
+import ec.edu.uteq.soporte.authservice.application.CreateUserCommand;
+import ec.edu.uteq.soporte.authservice.domain.User;
 import ec.edu.uteq.soporte.authservice.presentation.dto.ApiResponse;
 import ec.edu.uteq.soporte.authservice.presentation.dto.CreateUserRequest;
 import ec.edu.uteq.soporte.authservice.presentation.dto.UserResponse;
@@ -35,12 +37,16 @@ public class AdminUserController {
     @ResponseStatus(HttpStatus.CREATED)
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<UserResponse> createUser(@Valid @RequestBody CreateUserRequest request) {
-        return ApiResponse.of(authService.createUserAsAdmin(request), "Usuario creado");
+        CreateUserCommand command = new CreateUserCommand(
+                request.email(), request.password(), request.fullName(), request.role(), request.zone());
+        User created = authService.createUserAsAdmin(command);
+        return ApiResponse.of(UserResponse.from(created), "Usuario creado");
     }
 
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
     public ApiResponse<List<UserResponse>> listUsers() {
-        return ApiResponse.of(authService.listUsers(), "OK");
+        List<UserResponse> users = authService.listUsers().stream().map(UserResponse::from).toList();
+        return ApiResponse.of(users, "OK");
     }
 }

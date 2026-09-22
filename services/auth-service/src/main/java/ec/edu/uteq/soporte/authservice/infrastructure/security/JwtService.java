@@ -1,6 +1,8 @@
 package ec.edu.uteq.soporte.authservice.infrastructure.security;
 
 import ec.edu.uteq.soporte.authservice.application.InvalidTokenException;
+import ec.edu.uteq.soporte.authservice.application.IssuedAccessToken;
+import ec.edu.uteq.soporte.authservice.application.TokenIssuer;
 import ec.edu.uteq.soporte.authservice.domain.PermissionCatalog;
 import ec.edu.uteq.soporte.authservice.domain.User;
 import io.jsonwebtoken.Claims;
@@ -31,7 +33,7 @@ import java.util.Date;
  * ticket-service.
  */
 @Service
-public class JwtService {
+public class JwtService implements TokenIssuer {
 
     private final SecretKey signingKey;
     private final long accessTtlMinutes;
@@ -46,6 +48,7 @@ public class JwtService {
         this.refreshTtlDays = refreshTtlDays;
     }
 
+    @Override
     public IssuedAccessToken generateAccessToken(User user) {
         Instant now = Instant.now();
         Instant expiresAt = now.plus(Duration.ofMinutes(accessTtlMinutes));
@@ -66,6 +69,7 @@ public class JwtService {
         return new IssuedAccessToken(token, OffsetDateTime.ofInstant(expiresAt, ZoneOffset.UTC));
     }
 
+    @Override
     public Claims parseAndValidate(String token) {
         try {
             return Jwts.parser()
@@ -78,10 +82,8 @@ public class JwtService {
         }
     }
 
+    @Override
     public Duration refreshTokenTtl() {
         return Duration.ofDays(refreshTtlDays);
-    }
-
-    public record IssuedAccessToken(String token, OffsetDateTime expiresAt) {
     }
 }
