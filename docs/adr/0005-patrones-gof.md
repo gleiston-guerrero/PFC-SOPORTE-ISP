@@ -24,15 +24,6 @@ manera uniforme. El estado `ESCALADO` existía en el enum `TicketStatus` desde l
 ningún camino del código lo alcanzaba: no había ninguna regla de escalado implementada, ni
 ninguna forma de reaccionar a que un ticket se escalara.
 
-Antes de este refactor, `ticket-service` tenía una única clase `TicketService` que mezclaba:
-acceso a datos vía `TicketRepository extends JpaRepository` (interfaz de Spring Data
-inyectada directamente, sin puerto de dominio), la lógica de creación de tickets en línea, dos
-copias distintas de "cuánto SLA le corresponde a este ticket" (una en `TicketService`, otra en
-`TicketClassificationListener`), y los tres casos de uso mutables (crear, cambiar estado,
-asignar técnico) como métodos con nombre en esa misma clase, sin forma de interceptarlos de
-manera uniforme. El estado `ESCALADO` existía en el enum `TicketStatus` desde la E3 pero
-ningún camino del código lo alcanzaba: no había ninguna regla de escalado implementada.
-
 ## Decisión
 Se adoptan 6 patrones GoF, cada uno mapeado a un problema concreto que existía antes del
 refactor (los 5 primeros son extracciones de lógica preexistente; Observer es
@@ -129,8 +120,12 @@ requiere tocar `EscalationScheduler` ni ninguno de los observadores existentes.
   en `EscalationChainTest`, incluyendo que un ticket ya resuelto no se re-escala) y observable
   (3 casos en `EscalationSchedulerTest`, incluyendo que un observador que falla no bloquea a los
   demás ni pierde el escalado ya persistido).
-- Los 45 tests de la suite (unitarios + integración real contra CockroachDB vía Testcontainers)
-  pasan sobre la nueva estructura de 4 capas.
+- Los tests de la suite (unitarios + integración real contra CockroachDB vía Testcontainers)
+  pasan sobre la nueva estructura de 4 capas — 45 al momento de este ADR (Agosto 2026); la
+  cifra vigente y verificada es la de la Sección de Pruebas del manuscrito
+  (`docs/latex/secciones/pruebas_cicd.tex`, 156 en `svc-principal` a esta entrega), que sí se
+  recalcula en cada corrección — este ADR es un registro de la decisión de diseño en su
+  momento, no un dato que se actualice junto con las rondas de pruebas posteriores.
 - El observador de métricas (`app_business_events_total`) adelanta parte del trabajo del Módulo F
   (D6, observabilidad) que de otro modo se haría desde cero en esa etapa.
 
