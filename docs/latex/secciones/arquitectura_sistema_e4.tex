@@ -188,10 +188,16 @@ ahora el puerto que \texttt{TicketWriter} conoce, y \texttt{CrdbMetrics} lo impl
 sigue inyectando la implementación real por tipo. \texttt{DomainArchitectureTest} se amplió con
 una regla de \texttt{Architectures.layeredArchitecture()} que verifica la dirección real de las
 cuatro capas (\texttt{domain} $\leftarrow$ \texttt{application} $\leftarrow$
-\texttt{infrastructure}/\texttt{presentation}), con una única excepción declarada:
-\texttt{infrastructure} puede depender de \texttt{presentation} porque
-\texttt{AuthGatewayFilter} reutiliza el sobre de respuesta \texttt{ApiResponse} para las
-respuestas 401/403 que rechaza antes de que la petición llegue a un controlador.
+\texttt{infrastructure}/\texttt{presentation}), con una única excepción \emph{ejercida} en el
+código: \texttt{infrastructure} depende de \texttt{presentation} porque \texttt{AuthGatewayFilter}
+reutiliza el sobre de respuesta \texttt{ApiResponse} para las respuestas 401/403 que rechaza antes
+de que la petición llegue a un controlador. La propia regla de \texttt{Architectures}, tal como
+está escrita (\texttt{whereLayer("Infrastructure").mayOnlyBeAccessedByLayers("Presentation")}),
+también permite en abstracto la dirección contraria —\texttt{presentation} dependiendo de
+\texttt{infrastructure}, el sentido habitual de inyección de dependencias en cualquier capa de
+presentación—, pero hoy ningún controlador de ningún servicio la ejerce; una revisión externa
+señaló, con razón, que llamar a esto ``la única excepción'' sin matizar sugiere que ArchUnit
+prohíbe esa segunda dirección, cuando en realidad solo no está en uso.
 
 Una revisión externa del repositorio observó, con razón, que este refactor completo solo se
 había aplicado a \texttt{ticket-service}: los otros seis microservicios seguían con la
