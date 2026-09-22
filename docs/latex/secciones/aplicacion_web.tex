@@ -93,6 +93,9 @@ mismo backend.
 
 \texttt{eslint} con las reglas por defecto de \texttt{@typescript-eslint} corre en modo estricto
 (\texttt{--max-warnings 0}: cualquier advertencia rompe la compilación, no solo los errores). La
-cobertura de pruebas (Vitest + Testing Library) alcanza el 87.6\,\% de líneas sobre el total de la
-aplicación, con la única brecha significativa en el componente de detalle recién agregado
-(\texttt{TicketDetailModal.tsx}, 34.8\,\%), pendiente de cubrir antes del cierre del proyecto.
+cobertura de pruebas (Vitest + Testing Library, \texttt{v8}) alcanza el 94.6\,\% de líneas sobre
+el total de la aplicación —\texttt{TicketDetailModal.tsx}, que en una ronda anterior de esta
+misma entrega era la brecha principal (34.8\,\%), ya está al 100\,\% de líneas hoy—, con la única
+brecha real restante en \texttt{MouseParticles.tsx} (20.7\,\%): la estela de partículas
+decorativa del fondo de \texttt{LoginPage}, canvas + \texttt{requestAnimationFrame} puramente
+visual sin lógica de negocio, que no aporta cubrir exhaustivamente rama por rama.
