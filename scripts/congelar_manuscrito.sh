@@ -28,13 +28,15 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 echo "Congelando docs/latex/ en el commit $COMMIT_HASH ($COMMIT_DATE)..."
 
 # Copia el arbol docs/latex/ tal como estaba en ese commit exacto (no el arbol de trabajo
-# actual), mas docs/diagrams/ y release/screenshots/ -- las figuras de aplicacion_web.tex y
-# aplicacion_movil.tex las referencian con ruta relativa ../../release/screenshots/*.png, fuera
-# de docs/, y sin ellas pdflatex aborta con "File ... not found: using draft setting" (el mismo
-# problema que el entregable #42 documenta para la variante Docker del README que monta solo
-# docs/). git archive conserva la ruta completa, asi que el fuente queda en
-# "$TMP_DIR/docs/latex/", no en "$TMP_DIR/latex/".
-git archive "$COMMIT_HASH" docs/latex docs/diagrams release/screenshots | tar -x -C "$TMP_DIR"
+# actual), mas docs/diagrams/, docs/evidencias/ y release/screenshots/ -- las figuras de
+# aplicacion_web.tex y aplicacion_movil.tex las referencian con rutas relativas como
+# ../../release/screenshots/*.png o ../../docs/evidencias/*.png, fuera de docs/latex/, y sin
+# ellas pdflatex aborta con "File ... not found" en modo -halt-on-error (el mismo problema que el
+# entregable #42 documenta para la variante Docker del README que monta solo docs/latex/; una
+# instantanea de esta sesion lo reprodujo de verdad para docs/evidencias/, que faltaba en esta
+# lista, tras agregarse una figura nueva ahi). git archive conserva la ruta completa, asi que el
+# fuente queda en "$TMP_DIR/docs/latex/", no en "$TMP_DIR/latex/".
+git archive "$COMMIT_HASH" docs/latex docs/diagrams docs/evidencias release/screenshots | tar -x -C "$TMP_DIR"
 LATEX_DIR="$TMP_DIR/docs/latex"
 
 AVISO_CONGELADO="Instantánea congelada de la Entrega 4 — commit \\texttt{$COMMIT_SHORT}, generada el $COMMIT_DATE. Este PDF no se vuelve a recompilar ni a sobrescribir. Para la versión viva y más reciente, vea \\texttt{docs/latex/main.tex} en la rama \\texttt{main}; para verificar esta copia, vea \\texttt{docs/entregas-congeladas/entrega4/README.md}."
