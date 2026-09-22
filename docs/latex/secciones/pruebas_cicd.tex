@@ -743,9 +743,14 @@ la Entrega 3 (78.5\,\%, tras las rondas de pruebas de esta entrega). El paquete
 anterior a esta corrección tenía \textbf{0 de 38 líneas cubiertas} —ningún test ejercitaba las
 ramas de token inválido/expirado/ausente directamente sobre esas clases, solo indirectamente vía
 las pruebas de integración HTTP 401/403, que JaCoCo no le atribuye—, quedó cerrado con
-\texttt{AuthGatewayFilterTest}; el paquete creció después con la línea de acceso real del
-entregable \#11 (\texttt{AuthGatewayFilter} pasó de 38 a 40 líneas) y sigue en 42 de 42 líneas
-cubiertas hoy. El paquete que más arrastra la
+\texttt{AuthGatewayFilterTest}; la clase \texttt{AuthGatewayFilter} creció después con la línea
+de acceso real del entregable \#11 (de 38 a 40 líneas, las 40 cubiertas). El paquete completo
+(\texttt{AuthGatewayFilter} + \texttt{ValidateResponse} + la clase interna anónima
+\texttt{AuthGatewayFilter\$1}) suma \textbf{41 de 41} líneas cubiertas según el agregado por
+paquete de \texttt{jacoco.xml} —no 42: el \texttt{jacoco.csv}, que reporta una fila por clase, da
+40+1+1=42 porque atribuye a \texttt{AuthGatewayFilter\$1} la misma línea fuente donde se declara
+dentro de \texttt{AuthGatewayFilter}, y el XML deduplica esa línea compartida al agregarla por
+paquete en vez de sumarla dos veces. El paquete que más arrastra la
 cifra de ramas hacia abajo hoy es \texttt{domain}, y en concreto una sola clase:
 \texttt{TicketId} (0 de 22 ramas cubiertas). No es una omisión: \texttt{TicketId} es la clave
 compuesta \texttt{@IdClass} de \texttt{Ticket} (\texttt{createdAt}, \texttt{id}), generada por
