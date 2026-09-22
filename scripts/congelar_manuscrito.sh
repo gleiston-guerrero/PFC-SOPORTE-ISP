@@ -37,7 +37,7 @@ echo "Congelando docs/latex/ en el commit $COMMIT_HASH ($COMMIT_DATE)..."
 git archive "$COMMIT_HASH" docs/latex docs/diagrams release/screenshots | tar -x -C "$TMP_DIR"
 LATEX_DIR="$TMP_DIR/docs/latex"
 
-AVISO_CONGELADO="Instantánea congelada de la Entrega 4 — commit \\\\texttt{$COMMIT_SHORT}, generada el $COMMIT_DATE. Este PDF no se vuelve a recompilar ni a sobrescribir. Para la versión viva y más reciente, vea \\\\texttt{docs/latex/main.tex} en la rama \\\\texttt{main}; para verificar esta copia, vea \\\\texttt{docs/entregas-congeladas/entrega4/README.md}."
+AVISO_CONGELADO="Instantánea congelada de la Entrega 4 — commit \\texttt{$COMMIT_SHORT}, generada el $COMMIT_DATE. Este PDF no se vuelve a recompilar ni a sobrescribir. Para la versión viva y más reciente, vea \\texttt{docs/latex/main.tex} en la rama \\texttt{main}; para verificar esta copia, vea \\texttt{docs/entregas-congeladas/entrega4/README.md}."
 
 python3 - "$LATEX_DIR/main.tex" "$AVISO_CONGELADO" <<'PYEOF'
 import sys
@@ -110,10 +110,12 @@ sha256sum $(basename "$OUT_PDF")
 
 Tamaño esperado: $SIZE_BYTES bytes, $PAGES páginas.
 
-El PDF se compiló con \`scripts/congelar_manuscrito.sh\` ($FREEZE_TIMESTAMP), que reproduce los
-mismos cuatro pasos (\`pdflatex\`, \`bibtex\`, \`pdflatex\` × 2) que documenta la raíz del
-\`README.md\`, sobre el árbol de \`docs/latex/\` tal como estaba en \`$COMMIT_HASH\` (no sobre el
-árbol de trabajo actual).
+El PDF se compiló con \`scripts/congelar_manuscrito.sh\` ($FREEZE_TIMESTAMP), que corre
+\`latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex\` (no los cuatro pasos sueltos
+de \`pdflatex\`/\`bibtex\`/\`pdflatex\` × 2 que documenta la raíz del \`README.md\`: \`latexmk\`
+decide cuántas pasadas hacen falta y evita que un \`pdflatex\` de MiKTeX recién instalado aborte
+el guion con \`set -e\` solo por el aviso de "check for updates"), sobre el árbol de
+\`docs/latex/\` tal como estaba en \`$COMMIT_HASH\` (no sobre el árbol de trabajo actual).
 EOF
 
 echo "Listo: $OUT_PDF"
