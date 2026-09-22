@@ -8,10 +8,10 @@ saber a qué versión corresponde un PDF descargado en un momento dado.
 
 ## Qué es este archivo
 
-[`manuscrito-entrega4-fe00891-2026-09-22.pdf`](manuscrito-entrega4-fe00891-2026-09-22.pdf) es una copia congelada del manuscrito,
-generada por `scripts/congelar_manuscrito.sh` a partir del commit `fe00891625f9f31e0ebd1bde97d70ab709dcf5e6`
+[`manuscrito-entrega4-fd62294-2026-09-22.pdf`](manuscrito-entrega4-fd62294-2026-09-22.pdf) es una copia congelada del manuscrito,
+generada por `scripts/congelar_manuscrito.sh` a partir del commit `fd622946afb7a98b59a9d910b4bd6b972f7a1ec2`
 (2026-09-22) — el commit de cierre de esta entrega. El propio PDF lleva, en un recuadro bajo el
-título, el aviso "Instantánea congelada de la Entrega 4 — commit `fe00891`, generada el
+título, el aviso "Instantánea congelada de la Entrega 4 — commit `fd62294`, generada el
 2026-09-22", así que la referencia de versión no depende solo del nombre del archivo o de este
 README.
 
@@ -23,15 +23,17 @@ la instantánea correcta — no coexisten dos congeladas distintas a propósito.
 ## Cómo verificarla
 
 ```bash
-git show fe00891625f9f31e0ebd1bde97d70ab709dcf5e6:docs/latex/main.tex > /tmp/main_fe00891.tex   # el fuente exacto de ese commit
-sha256sum manuscrito-entrega4-fe00891-2026-09-22.pdf
+git show fd622946afb7a98b59a9d910b4bd6b972f7a1ec2:docs/latex/main.tex > /tmp/main_fd62294.tex   # el fuente exacto de ese commit
+sha256sum manuscrito-entrega4-fd62294-2026-09-22.pdf
 # Huella esperada:
-# c51d4ca7f66a0ab602400d67e2f11ee2c8e8419103519310159decc4535a26dd
+# e9c9222280a512b7d135e75bf304f3d2ecfa479722d8a53294a6fad557719029
 ```
 
-Tamaño esperado: 2515611 bytes, 69 páginas.
+Tamaño esperado: 2869224 bytes, 70 páginas.
 
-El PDF se compiló con `scripts/congelar_manuscrito.sh` (2026-09-22T17:38:10Z), que reproduce los
-mismos cuatro pasos (`pdflatex`, `bibtex`, `pdflatex` × 2) que documenta la raíz del
-`README.md`, sobre el árbol de `docs/latex/` tal como estaba en `fe00891625f9f31e0ebd1bde97d70ab709dcf5e6` (no sobre el
-árbol de trabajo actual).
+El PDF se compiló con `scripts/congelar_manuscrito.sh` (2026-09-22T22:19:46Z), que corre
+`latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex` (no los cuatro pasos sueltos
+de `pdflatex`/`bibtex`/`pdflatex` × 2 que documenta la raíz del `README.md`: `latexmk`
+decide cuántas pasadas hacen falta y evita que un `pdflatex` de MiKTeX recién instalado aborte
+el guion con `set -e` solo por el aviso de "check for updates"), sobre el árbol de
+`docs/latex/` tal como estaba en `fd622946afb7a98b59a9d910b4bd6b972f7a1ec2` (no sobre el árbol de trabajo actual).
