@@ -176,6 +176,20 @@ por tanto, aplicar las tres migraciones en orden (\texttt{V1} → \texttt{V2} �
 una base vacía —el procedimiento exacto, verificado contra un clúster real, está en
 \texttt{db-cluster/README.md}—, no una migración única ni un volcado de esquema independiente.
 
+El propio archivo \texttt{V3\_\_add\_close\_evidence.sql} tuvo un problema real, encontrado por
+una revisión externa y reproducido aquí: el commit \texttt{0544312} (18/09) corrigió una cifra de
+tamaño de foto incorrecta en un \emph{comentario} de ese archivo, sin tocar ninguna sentencia SQL
+—pero Flyway calcula el \emph{checksum} de cada migración sobre el archivo completo, comentarios
+incluidos, así que cualquier base que ya tuviera \texttt{V3} aplicada desde antes de ese commit
+queda con un checksum registrado distinto del que Flyway recalcula al arrancar. Lo reproduje
+aplicando \texttt{V1}, \texttt{V2} y la \texttt{V3} original (\texttt{b7acb32}) con Flyway 9.22.3
+sobre un CockroachDB real, y corriendo después \texttt{validate}/\texttt{migrate} con la
+\texttt{V3} corregida: ambos terminan con \texttt{FlywayException: Migration checksum mismatch
+for migration version 3}. Ninguna migración versionada de Flyway debe editarse una vez aplicada
+—el archivo no vuelve a tocarse—; \texttt{db-cluster/README.md} documenta el procedimiento de
+reparación (\texttt{flyway repair}) para cualquier base persistente que ya tuviera la V3 anterior
+al commit \texttt{0544312}.
+
 \subsection{Trade-offs aceptados}
 
 El rediseño no es gratuito: las consultas filtradas por zona —el filtro más frecuente en la
