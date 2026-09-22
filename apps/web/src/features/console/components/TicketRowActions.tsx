@@ -8,6 +8,16 @@ import type { TicketResponse, TicketStatus } from '../types/ticket'
 
 const STATUSES: TicketStatus[] = ['NUEVO', 'ASIGNADO', 'EN_PROGRESO', 'ESCALADO', 'RESUELTO', 'CERRADO']
 
+// RESUELTO exige foto + GPS de evidencia cuando quien cierra es TECNICO
+// (TicketAuthorization/UpdateTicketStatusHandler.java, Entregable 10 de la guia de cierre) --
+// esta consola no captura camara ni geolocalizacion, asi que ofrecerle RESUELTO a un TECNICO
+// aqui solo terminaria en un 400 del backend (revision externa posterior encontro exactamente
+// este caso: la consola ofrecia RESUELTO a cualquier rol y el PATCH se mandaba sin evidencia).
+// El cierre en sitio es una capacidad de apps/mobile a proposito; un ADMIN si puede seguir
+// resolviendo un ticket sin evidencia desde aqui (alta administrativa, mismo criterio que el
+// backend).
+const STATUSES_SIN_EVIDENCIA = STATUSES.filter((s) => s !== 'RESUELTO')
+
 /**
  * Solo TECNICO/ADMIN la ven (ver ConsolePage.tsx) -- CLIENTE nunca puede cambiar estado ni
  * asignar (403 del backend, ver TicketAuthorization.assertCanManage).
@@ -71,6 +81,12 @@ export function TicketRowActions({
 
   const zoneTechnicians = technicians.filter((tech) => tech.zone === ticket.zone)
 
+  // Un TECNICO no ve RESUELTO como destino (debe cerrar en sitio desde apps/mobile, con
+  // evidencia) -- salvo que el ticket YA este en RESUELTO, para que el <select> siga
+  // mostrando su estado real en vez de caer a la primera opcion de la lista.
+  const availableStatuses =
+    role === 'TECNICO' && ticket.status !== 'RESUELTO' ? STATUSES_SIN_EVIDENCIA : STATUSES
+
   return (
     <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
       <select
@@ -80,7 +96,7 @@ export function TicketRowActions({
         className="field-input"
         style={selectStyle}
       >
-        {STATUSES.map((s) => (
+        {availableStatuses.map((s) => (
           <option key={s} value={s}>
             {t(`status.${s}`)}
           </option>

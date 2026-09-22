@@ -112,6 +112,34 @@ describe('TicketRowActions', () => {
     expect(screen.queryByRole('combobox', { name: 'Asignar a técnico…' })).not.toBeInTheDocument()
   })
 
+  it('TECNICO no ve RESUELTO como opcion del selector de estado (exige evidencia que esta consola no captura)', () => {
+    render(<TicketRowActions ticket={baseTicket} currentUserId="u1" role="TECNICO" technicians={[]} onChanged={vi.fn()} />)
+
+    const opciones = screen.getAllByRole('option').map((o) => (o as HTMLOptionElement).value)
+    expect(opciones).not.toContain('RESUELTO')
+  })
+
+  it('ADMIN si ve RESUELTO como opcion del selector de estado (puede resolver sin evidencia)', () => {
+    render(<TicketRowActions ticket={baseTicket} currentUserId="admin1" role="ADMIN" technicians={[]} onChanged={vi.fn()} />)
+
+    const opciones = screen.getAllByRole('option').map((o) => (o as HTMLOptionElement).value)
+    expect(opciones).toContain('RESUELTO')
+  })
+
+  it('un ticket ya RESUELTO sigue mostrando ese estado en el selector aunque lo vea un TECNICO', () => {
+    render(
+      <TicketRowActions
+        ticket={{ ...baseTicket, status: 'RESUELTO' }}
+        currentUserId="u1"
+        role="TECNICO"
+        technicians={[]}
+        onChanged={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByRole('combobox')).toHaveValue('RESUELTO')
+  })
+
   it('ADMIN sin tecnicos en la zona del ticket ve un aviso en vez de un selector vacio', () => {
     render(
       <TicketRowActions

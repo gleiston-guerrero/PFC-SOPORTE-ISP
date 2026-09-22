@@ -25,17 +25,33 @@ encontraría la tabla `tickets` fuera de `ticket_db` — no porque V2 cambie de 
 sentencia SQL, sino porque `tickets` sin calificar se resuelve contra la base activa de la
 sesión, que fija el flag `--database=` de cada comando, no el script en sí.
 
+**Advertencia sobre el nombre de la base**: `db-cluster/docker-compose.cockroach.yml` (este
+archivo) y el `docker-compose.yml` de la raíz **comparten los mismos volúmenes físicos**
+(`roach{1,2,3}-data` — el de la raíz los nombra explícitamente `db-cluster_roach{1,2,3}-data`
+para no perder los datos de demo entre los dos, ver su comentario). Si se cargan estas
+migraciones a mano contra `ticket_db` (el nombre real que usa `ticket-service`), el esquema
+queda escrito en `public` **sin** la tabla `flyway_schema_history` que Flyway necesita — la
+próxima vez que el `ticket-service` real arranque contra ese mismo volumen, Flyway rechaza el
+arranque con `Found non-empty schema(s) "public" but no schema history table` (`baseline-on-
+migrate` no está activado, ver más abajo). Por eso los comandos usan un nombre de base
+**desechable** (`ticket_db_verify_test`), no `ticket_db`; sustituir por `ticket_db` solo si se
+sabe que ese clúster nunca va a compartir volumen con el `docker-compose.yml` de la raíz.
+
 ```bash
-cockroach sql --insecure --host=localhost:26257 -e "CREATE DATABASE IF NOT EXISTS ticket_db;"
-cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql
-cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V2__configure_ticket_zone.sql
-cockroach sql --insecure --host=localhost:26257 --database=ticket_db -f ../services/svc-principal/src/main/resources/db/migration/V3__add_close_evidence.sql
-cockroach sql --insecure --host=localhost:26257 -f scripts/seed_partitioned.sql
+cockroach sql --insecure --host=localhost:26257 -e "CREATE DATABASE IF NOT EXISTS ticket_db_verify_test;"
+cockroach sql --insecure --host=localhost:26257 --database=ticket_db_verify_test -f ../services/svc-principal/src/main/resources/db/migration/V1__init_ticket_schema.sql
+cockroach sql --insecure --host=localhost:26257 --database=ticket_db_verify_test -f ../services/svc-principal/src/main/resources/db/migration/V2__configure_ticket_zone.sql
+cockroach sql --insecure --host=localhost:26257 --database=ticket_db_verify_test -f ../services/svc-principal/src/main/resources/db/migration/V3__add_close_evidence.sql
+cockroach sql --insecure --host=localhost:26257 -e "DROP DATABASE ticket_db_verify_test;"  # al terminar, para no dejar basura en el volumen compartido
 ```
+
+(`scripts/seed_partitioned.sql` está pensado para `ticket_db` real con datos de demo, no para
+esta base desechable — correrlo aparte, contra `ticket_db`, solo si el clúster es de verdad
+independiente del `docker-compose.yml` de la raíz.)
 
 Verificado de extremo a extremo el 21/09 contra un cluster real (`roach1/2/3` del
 `docker-compose.yml` raíz, reutilizando sus volúmenes con datos existentes): las tres
-migraciones corren limpias en secuencia contra una base de prueba desechable
+migraciones corren limpias en secuencia contra esta misma base de prueba desechable
 (`ticket_db_verify_test`, creada y eliminada solo para esta verificación, sin tocar
 `ticket_db`), dejan las 5 tablas esperadas y las 4 particiones trimestrales de `tickets` con
 `num_replicas = 3`, y `SHOW COLUMNS` confirma las tres columnas de evidencia
@@ -48,7 +64,36 @@ SHOW PARTITIONS FROM TABLE ticket_db.tickets;
 SELECT zone, count(*) FROM ticket_db.tickets GROUP BY zone;
 ```
 
-## Prueba de tolerancia a fallos (Paso 4)
+## Si `ticket-service` no arranca por "Migration checksum mismatch" en V3
+
+Aplica solo a una base persistente (no a Testcontainers/CI, que siempre parten de un esquema
+vacío) que haya tenido `V3__add_close_evidence.sql` aplicada por Flyway **antes** del commit
+`0544312` (18/09) — ese commit corrigió un comentario de ese archivo (una cifra de tamaño de
+foto incorrecta), sin cambiar ninguna sentencia SQL, pero Flyway calcula el checksum sobre el
+archivo completo, comentarios incluidos, así que el checksum sí cambió. Si `ticket-service`
+falla al arrancar con:
+
+```
+FlywayException: Migration checksum mismatch for migration version 3
+-> Applied to database : <checksum viejo>
+-> Resolved locally    : <checksum nuevo>
+```
+
+el esquema real ya es correcto (las tres columnas de evidencia ya están ahí; solo cambió el
+comentario del archivo que las creó) — no hace falta ni conviene revertir la migración. Reparar
+el checksum registrado, sin volver a ejecutar la migración:
+
+```bash
+docker run --rm --network host flyway/flyway:9.22.3 \
+  -url=jdbc:postgresql://localhost:26257/ticket_db?sslmode=disable \
+  -user=root -password= \
+  -locations=filesystem:services/svc-principal/src/main/resources/db/migration \
+  repair
+```
+
+(ajustar `-url`/`-network` si el cluster no corre en `localhost:26257` del host). Verificar
+después con `SELECT version, checksum FROM ticket_db.flyway_schema_history WHERE version = '3';`
+que el checksum ya coincide con el del archivo actual, y que `ticket-service` arranca normal.
 
 Terminal 1 (carga sostenida):
 ```bash

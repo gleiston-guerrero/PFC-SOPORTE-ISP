@@ -6,7 +6,7 @@ Quevedo, Facultad de Ciencias de la Computación.
 Sistema distribuido de gestión de tickets de soporte técnico para un ISP: dos aplicaciones
 cliente (web y móvil) que consumen la misma API a través de un único API Gateway, seis
 microservicios, persistencia distribuida real (CockroachDB), mensajería asíncrona (Kafka),
-observabilidad completa (métricas + logs + trazas) y un pipeline de CI/CD de 7 jobs.
+observabilidad completa (métricas + logs + trazas) y un pipeline de CI/CD de 10 jobs.
 
 > ⚠️ **Importante — fecha límite de entrega indicada por el docente:** los commits para la
 > actividad **GA-SUM-06 / PE-U5 - CI/CD, Pruebas y Observabilidad** se pueden realizar y subir
@@ -116,8 +116,9 @@ documenta qué se puede sobreescribir si se corre algún servicio suelto, fuera 
 | Instrumentadas móvil (Compose Testing) | `./gradlew connectedDebugAndroidTest` | `apps/mobile` (requiere emulador/dispositivo) |
 | Carga | `locust -f tests/load/locustfile.py --host http://localhost:8000` | raíz del repo |
 
-Pipeline completo de CI/CD (7 jobs: lint, test-backend, test-web, test-mobile, build-images,
-build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml).
+Pipeline completo de CI/CD (10 jobs: lint, validate-openapi, test-backend, test-web,
+test-mobile, build-images, build-mobile-apk, integration, compile-latex, verify-checksums):
+[`.github/workflows/ci-cd.yml`](.github/workflows/ci-cd.yml).
 
 ## Documentación
 
@@ -177,10 +178,18 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
 - **Manifiestos de sumas de verificación (SHA-256) de los datos crudos.** Cada carpeta de
   resultados lleva su propio `SHA256SUMS.txt`, en el formato que entiende `sha256sum -c`, y hay
   un tercero para el instalable móvil. Los dos primeros (`experimentos/resultados/`,
-  `resultados/locust/`) se generan con `python experimentos/generar_checksums.py`; el tercero
-  (`release/apk/`) no lo genera ese guion —lo genera la CI, en el paso `sha256sum` del trabajo
-  `build-mobile-apk` de `.github/workflows/ci-cd.yml`, junto al APK y el manuscrito en cada
-  publicación. Los tres se verifican así, desde un clon limpio:
+  `resultados/locust/`) se generan con `python experimentos/generar_checksums.py` y se
+  actualizan cuando los datos crudos cambian. El tercero (`release/apk/SHA256SUMS.txt`) **no**
+  lo genera la CI ni ese guion: es una instantánea versionada de un único commit
+  (`e03c15c`, 10/09), anterior al entregable #10 (cámara y GPS) — corrección propia sobre una
+  afirmación anterior que decía lo contrario. `verify-checksums` lo comprueba por su propia
+  consistencia interna (que el binario committeado no se haya corrompido desde ese commit), no
+  como prueba de que corresponde al APK que se publica hoy — ese APK, firmado y verificado de
+  verdad en cada envío, es el adjunto de la
+  [publicación bajo `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final), con su propio
+  `SHA256SUMS.txt` (junto al manuscrito) generado fresco por `build-mobile-apk` en cada
+  publicación y **no** versionado en el repositorio. Los tres manifiestos versionados se
+  verifican así, desde un clon limpio:
   ```bash
   cd experimentos/resultados && sha256sum -c SHA256SUMS.txt && cd -
   cd resultados/locust      && sha256sum -c SHA256SUMS.txt && cd -
@@ -194,8 +203,10 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
   instalación y verificación en [`apps/mobile/README.md`](apps/mobile/README.md#paquete-instalable-releaseapk)
 - Entrega estable publicada (instalable firmado + manuscrito compilado, bajo una etiqueta de
   versión real que el trabajo `build-mobile-apk` mueve al commit actual en cada envío a `main`
-  que pasa los siete jobs de verificación previos — no un alias fijo, la etiqueta de git
-  apunta siempre al commit exacto de los binarios adjuntos):
+  que pasa los ocho jobs de verificación previos (`needs` de ese trabajo en `ci-cd.yml`) — no
+  un alias fijo, la etiqueta de git apunta siempre al commit exacto de los binarios adjuntos;
+  además de la etiqueta móvil, cada publicación crea una segunda etiqueta inmutable
+  `entrega-<7 caracteres del commit>` que nunca se mueve):
   [GitHub Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)
 - Capturas reales de la web y la app móvil: [`release/screenshots/`](release/screenshots/)
 - Declaración de uso de IA: [`ai-usage-declaration.md`](ai-usage-declaration.md)
@@ -215,7 +226,7 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
 - **Pirámide de pruebas completa**: unitarias, integración (Testcontainers), contrato
   (Pact consumidor + proveedor), E2E (Playwright en 3 navegadores, Compose Testing en móvil),
   carga (Locust).
-- **Pipeline de CI/CD de 7 jobs** con publicación de imágenes en GHCR.
+- **Pipeline de CI/CD de 10 jobs** con publicación de imágenes en GHCR.
 - **Evaluación experimental contra ISO/IEC 25010**: 5 características medidas con datos reales
   (no simulados) — resultados honestos, incluyendo los umbrales que no se alcanzaron y por qué.
 - **`telemetry-service` (canal PE-U1)**: servidor de sockets TCP + reloj de Lamport + gRPC para

@@ -620,8 +620,11 @@ original era \texttt{needs: [test-mobile, compile-latex]} únicamente, así que 
 firmado y el manuscrito se publicaban aunque \texttt{lint}, \texttt{validate-openapi} o la suite
 completa de \texttt{test-backend}/\texttt{test-web}/\texttt{integration} estuvieran en rojo. Se
 corrigió a \texttt{needs: [lint, validate-openapi, test-backend, test-web, test-mobile,
-integration, compile-latex]}, para que tampoco este artefacto se publique sin que los siete jobs
-de verificación pasen primero.
+integration, compile-latex]}; una revisión externa posterior encontró que a esa lista aún le
+faltaba \texttt{verify-checksums} —la publicación podía salir con un manifiesto de datos crudos
+roto sin que nada lo impidiera—, así que la declaración final son ocho \emph{jobs}:
+\texttt{needs: [lint, validate-openapi, test-backend, test-web, test-mobile, integration,
+compile-latex, verify-checksums]}.
 
 Un segundo defecto de \texttt{build-mobile-apk}, independiente del anterior: la etiqueta bajo la
 que se publicaba (\texttt{mobile-release}) no era una etiqueta de \emph{versión} en ningún
@@ -631,7 +634,15 @@ reconstruían en cada \emph{push} a \texttt{main}, el tag de git seguía apuntan
 se creó por primera vez —etiqueta y contenido publicado dejaban de corresponder silenciosamente.
 Se agregó un paso explícito (\texttt{git tag -f ... \&\& git push --force}) que mueve la etiqueta
 \texttt{v1.0-entrega-final} al commit actual \emph{antes} de publicar, y se renombró la etiqueta
-en consecuencia: ahora es una versión real, no un alias fijo que solo indica "la más reciente".
+en consecuencia. Una revisión externa posterior encontró dos huecos más en este mismo mecanismo:
+(a) al ser una etiqueta que se fuerza en cada \emph{push}, nunca hay una versión \emph{inmutable}
+de una entrega concreta —se agregó una segunda etiqueta ligera por commit
+(\texttt{entrega-<7 caracteres del SHA>}), creada sin \texttt{-f} junto a la móvil, que nunca se
+mueve ni se sobrescribe; y (b) el flujo no serializaba ejecuciones solapadas de este \emph{job}
+—dos \emph{pushes} seguidos podían entrelazar sus pasos de "mover etiqueta" y "publicar" en
+cualquier orden—, corregido con \texttt{concurrency: \{group: build-mobile-apk-\$\{\{ github.ref
+\}\}, cancel-in-progress: false\}}, que hace que el \emph{run} más nuevo espere a que el anterior
+termine de publicar en vez de competir con él.
 
 \subsection{Depuración real del job \texttt{integration}}
 \label{sec:cicd-depuracion}

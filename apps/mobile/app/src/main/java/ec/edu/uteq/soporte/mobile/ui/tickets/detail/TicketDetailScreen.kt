@@ -2,6 +2,8 @@ package ec.edu.uteq.soporte.mobile.ui.tickets.detail
 
 import android.Manifest
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -387,9 +389,9 @@ fun TicketDetailScreen(ticketId: String, onBack: () -> Unit, onClosed: () -> Uni
                     Button(onClick = {
                         showConfirmCloseDialog = false
                         val photoUri = uiState.evidencePhotoUri ?: return@Button
-                        val bytes = context.contentResolver.openInputStream(photoUri)?.use { it.readBytes() }
+                        val rawBytes = context.contentResolver.openInputStream(photoUri)?.use { it.readBytes() }
                             ?: return@Button
-                        viewModel.closeOnSite(bytes)
+                        viewModel.closeOnSite(comprimirEvidenciaFotografica(rawBytes))
                     }) {
                         Text("Sí, finalizar")
                     }
@@ -473,4 +475,43 @@ private fun capturarUbicacion(
                 viewModel.onLocationCaptured(location.latitude, location.longitude)
             }
         }
+}
+
+// Revision externa posterior (Entregable 10 de la guia de cierre) encontro que la foto de
+// evidencia se enviaba sin comprimir (~2,4 MB del JPEG crudo de la camara, ~3,2 MB en Base64),
+// en contra de la propia recomendacion de CockroachDB de mantener valores BYTES por debajo de
+// ~1 MiB (ver V3__add_close_evidence.sql). Reduce dimension y calidad JPEG hasta bajar de
+// TARGET_BYTES, con un piso de calidad para no degradar la foto a algo inutil como evidencia.
+private const val EVIDENCE_TARGET_BYTES = 800 * 1024
+private const val EVIDENCE_MAX_DIMENSION_PX = 1600
+
+private fun comprimirEvidenciaFotografica(rawBytes: ByteArray): ByteArray {
+    val original = BitmapFactory.decodeByteArray(rawBytes, 0, rawBytes.size)
+        ?: return rawBytes // decodificacion fallida: se manda el original, mejor que nada
+    val escala = EVIDENCE_MAX_DIMENSION_PX.toFloat() / maxOf(original.width, original.height)
+    val redimensionada = if (escala < 1f) {
+        Bitmap.createScaledBitmap(
+            original,
+            (original.width * escala).toInt().coerceAtLeast(1),
+            (original.height * escala).toInt().coerceAtLeast(1),
+            true,
+        )
+    } else {
+        original
+    }
+
+    var calidad = 85
+    var salida: ByteArray
+    do {
+        val buffer = java.io.ByteArrayOutputStream()
+        redimensionada.compress(Bitmap.CompressFormat.JPEG, calidad, buffer)
+        salida = buffer.toByteArray()
+        calidad -= 15
+    } while (salida.size > EVIDENCE_TARGET_BYTES && calidad >= 25)
+
+    if (redimensionada !== original) {
+        original.recycle()
+    }
+    redimensionada.recycle()
+    return salida
 }

@@ -313,8 +313,23 @@ jobs:
     # build-images. Se agregan las mismas dependencias que build-images (lint, test-backend,
     # test-web, test-mobile, integration) mas validate-openapi y compile-latex, que build-images
     # no necesita pero este job si.
-    needs: [lint, validate-openapi, test-backend, test-web, test-mobile, integration, compile-latex]
+    #
+    # Tercera correccion (evaluacion externa posterior): verify-checksums faltaba de esta
+    # lista -- la publicacion podia salir con un manifiesto de datos crudos roto (un byte
+    # distinto a lo que dicen experimentos/resultados o resultados/locust) porque nada se lo
+    # impedia. Se agrega.
+    needs: [lint, validate-openapi, test-backend, test-web, test-mobile, integration, compile-latex, verify-checksums]
     runs-on: ubuntu-latest
+    # Serializa las publicaciones a main: sin esto, dos runs de build-mobile-apk que
+    # terminan superpuestos (p. ej. dos pushes seguidos) pueden entrelazar sus pasos de
+    # "mover la etiqueta" + "publicar" en cualquier orden, dejando la etiqueta v1.0-entrega-final
+    # apuntando a un commit mas viejo que el ultimo publicado (carrera real, encontrada por una
+    # evaluacion externa: "82e6457 y 1abb698 volvieron a tener runs solapados... nada lo
+    # garantiza"). group por rama (no por SHA) + cancel-in-progress:false: el run mas nuevo
+    # espera a que el anterior termine de publicar, en vez de cancelarlo a medio publicar.
+    concurrency:
+      group: build-mobile-apk-${{ github.ref }}
+      cancel-in-progress: false
     permissions:
       contents: write
     steps:
@@ -368,18 +383,10 @@ jobs:
           "${BUILD_TOOLS}apksigner" verify --verbose release/apk/soporte-isp.apk
           rm -f /tmp/release.jks /tmp/app-release-aligned.apk
 
-      - name: Generar suma de verificacion del APK firmado
-        run: |
-          cd release/apk
-          sha256sum soporte-isp.apk > SHA256SUMS.txt
-          sha256sum -c SHA256SUMS.txt
-
       - uses: actions/upload-artifact@v4
         with:
           name: soporte-isp-release-firmado
-          path: |
-            release/apk/soporte-isp.apk
-            release/apk/SHA256SUMS.txt
+          path: release/apk/soporte-isp.apk
           retention-days: 90
 
       # Entregable 16 de la guia de cierre: baja el PDF que compile-latex subio como
@@ -391,6 +398,17 @@ jobs:
         with:
           name: manuscrito-pdf
           path: release/
+
+      # Correccion (evaluacion externa posterior, Entregable 16): el SHA256SUMS.txt anterior
+      # solo cubria el APK -- el manuscrito se publicaba sin ninguna suma que lo verificara.
+      # Un solo manifiesto, generado despues de tener los dos binarios en su lugar final,
+      # cubre ambos.
+      - name: Generar suma de verificacion del APK firmado y el manuscrito
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          cd release
+          sha256sum apk/soporte-isp.apk main.pdf > SHA256SUMS.txt
+          sha256sum -c SHA256SUMS.txt
 
       # El paso anterior deja el APK firmado solo como artefacto del run (GitHub lo borra
       # a los 90 dias): sirve para depurar ESE run puntual, pero no es una entrega estable
@@ -413,6 +431,21 @@ jobs:
           git tag -f v1.0-entrega-final "${{ github.sha }}"
           git push origin v1.0-entrega-final --force
 
+      # Correccion adicional (Entregable 16, hallazgo de una evaluacion externa): "la unica
+      # etiqueta se fuerza en cada push, no hay ninguna version inmutable de la entrega". Junto
+      # a v1.0-entrega-final (que se mueve a proposito, es el puntero "publicacion estable
+      # vigente") se crea ademas una etiqueta ligera por commit que nunca se mueve ni se
+      # sobrescribe -- sin "-f" y sin "--force" en el push, para que fallar en vez de pisar una
+      # etiqueta existente sea el comportamiento por defecto si este paso corriera dos veces
+      # sobre el mismo commit. "|| true": si el commit ya tiene su etiqueta (reintento de un run
+      # fallido a medias), no se trata como error del job.
+      - name: Crear etiqueta inmutable de este commit (ademas de la movil)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          TAG="entrega-$(echo "${{ github.sha }}" | cut -c1-7)"
+          git tag "$TAG" "${{ github.sha }}"
+          git push origin "$TAG" || true
+
       - name: Publicar la entrega estable (instalable + manuscrito, no como artefacto temporal)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: softprops/action-gh-release@v2
@@ -422,16 +455,18 @@ jobs:
           body: >
             APK de release firmado y manuscrito compilado, generados automaticamente por el job
             build-mobile-apk de este mismo pipeline, unicamente cuando lint, validate-openapi,
-            test-backend, test-web, test-mobile, integration y compile-latex ya pasaron en verde
-            (ver needs de este job en ci-cd.yml). La etiqueta v1.0-entrega-final se mueve al
-            commit actual en cada publicacion, asi que siempre apunta al mismo commit del que
-            salieron estos binarios -- para el build asociado a un commit especifico mas
+            test-backend, test-web, test-mobile, integration, compile-latex y verify-checksums
+            ya pasaron en verde (ver needs de este job en ci-cd.yml). La etiqueta
+            v1.0-entrega-final se mueve al commit actual en cada publicacion (es el puntero a
+            "la publicacion estable vigente", no una version congelada); para una referencia que
+            nunca se mueve, ver la etiqueta ligera entrega-&lt;7 caracteres del commit&gt; que
+            este mismo paso crea junto a ella. Para el build asociado a un commit especifico mas
             antiguo, ver los artefactos soporte-isp-release-firmado y manuscrito-pdf del run
             correspondiente.
           files: |
             release/apk/soporte-isp.apk
-            release/apk/SHA256SUMS.txt
             release/main.pdf
+            release/SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
