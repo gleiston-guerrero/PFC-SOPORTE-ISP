@@ -502,10 +502,15 @@ refresco, logout, validación de sesión y administración de cuentas (\texttt{a
 operaciones); creación, listado, detalle, cambio de estado, asignación e incidencias de tickets
 (\texttt{ticket-service}, seis); notificaciones (\texttt{notification-service}, una);
 clasificación automática (\texttt{ai-service}, una); y los tres puntos de agregación de
-\texttt{report-service}, incluida la exportación a CSV. Cada una de las dieciocho declara un
-esquema de respuesta exitosa tipado -- ninguna se queda en la envoltura genérica
-\texttt{ApiResponse} sin decir qué va en \texttt{data} --, los códigos de estado posibles, y el
-esquema de seguridad (\texttt{bearerAuth}, JWT) cuando aplica; se valida automáticamente en el
+\texttt{report-service}, incluida la exportación a CSV. Diecisiete de las dieciocho declaran un
+esquema de respuesta exitosa tipado -- no se quedan en la envoltura genérica
+\texttt{ApiResponse} sin decir qué va en \texttt{data} --; la única excepción real y deliberada
+es \texttt{POST /logout}, cuyo \texttt{data} es \texttt{null} siempre (revoca un \emph{refresh
+token}, no devuelve ningún recurso), así que declarar un tipo para un campo que nunca lleva
+contenido sería artificial -- se documenta aquí como excepción en vez de forzar un esquema sin
+sentido o dejar la afirmación general sin matizar (hallazgo de una revisión externa). Todas
+declaran los códigos de estado posibles y el esquema de seguridad (\texttt{bearerAuth}, JWT)
+cuando aplica; se valida automáticamente en el
 flujo con Spectral (Sección~\ref{sec:validacion-contrato}), que rompe la construcción si alguna
 deja de cumplirlo. Cada ruta declara además su propio \texttt{servers:} (\emph{gateway} +
 puerto directo del servicio real), en vez de heredar los diez \texttt{servers} globales sin
@@ -542,12 +547,26 @@ declaradas en \texttt{.spectral.yaml}: \texttt{response-schema-required} exige q
 respuesta 2xx declare al menos un tipo de contenido, y \texttt{response-content-schema-required}
 exige que ese tipo de contenido tenga un \texttt{schema} no vacío -- no solo
 \texttt{application/json}, para no repetir el mismo hueco en \texttt{text/csv} u otro tipo que
-se agregue después. Una revisión externa mutó el contrato dos veces para verificar que la regla
-anterior (una sola, \texttt{content: truthy}) en realidad no protegía nada: quitar \texttt{content}
-de una operación sí rompía la construcción, pero cambiarlo por \texttt{application/json: \{\}} o
-por \texttt{text/plain: \{\}} —un tipo de contenido declarado, sin ningún esquema— pasaba igual.
-Las dos reglas actuales sí detectan ambas mutaciones (verificado reproduciendo el mismo ataque
-contra el contrato corregido). \texttt{build-images} y \texttt{build-mobile-apk} dependen de
+se agregue después. Una revisión externa mutó el contrato varias veces, en dos rondas, para verificar que las reglas
+protegían de verdad. Primera ronda: la regla anterior (una sola, \texttt{content: truthy}) en
+realidad no protegía nada -- quitar \texttt{content} de una operación sí rompía la construcción,
+pero cambiarlo por \texttt{application/json: \{\}} o por \texttt{text/plain: \{\}} —un tipo de
+contenido declarado, sin ningún esquema— pasaba igual; de ahí las dos reglas actuales.
+Segunda ronda, sobre esas dos reglas ya corregidas: quitar \texttt{content} por completo de
+\texttt{POST /logout} \emph{seguía} sin romper nada, porque el \texttt{given} de
+\texttt{response-schema-required} apuntaba directo a \texttt{.content} -- si esa clave no existe,
+el selector JSONPath no encuentra nada que evaluar, así que Spectral no reporta ninguna
+violación ("nada que revisar" en vez de "falta algo obligatorio"); y \texttt{schema: \{\}} (un
+objeto vacío, sin quitar la clave) tampoco rompía \texttt{response-content-schema-required},
+porque \texttt{\{\}} es \emph{truthy} en JavaScript. Se corrigieron ambas: el \texttt{given} de
+la primera regla ahora apunta al objeto de la respuesta 2xx en sí, no a \texttt{.content}, para
+que su ausencia también caiga bajo la regla; y las dos reglas usan la función \texttt{schema} de
+Spectral con \texttt{minProperties: 1} en vez de \texttt{truthy}/\texttt{length}, para que un
+objeto vacío no pase como "presente". Las cinco mutaciones (quitar \texttt{content},
+\texttt{application/json: \{\}}, \texttt{text/plain: \{\}}, \texttt{schema: \{\}}, y la
+combinación de las dos rondas) fallan hoy contra el contrato corregido, reproducidas de nuevo
+sobre esta misma versión antes de esta entrega. \texttt{build-images} y \texttt{build-mobile-apk}
+dependen de
 \texttt{validate-openapi} en su \texttt{needs}, así que un contrato roto ya no solo pone el
 \emph{run} en rojo: impide también publicar las imágenes de \emph{Docker} y el APK/manuscrito de
 la entrega.

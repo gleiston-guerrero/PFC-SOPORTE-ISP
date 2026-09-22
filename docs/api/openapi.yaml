@@ -25,8 +25,16 @@ servers:
   - &tickets_gateway
     url: http://localhost:8000/api/v1/tickets
     description: ticket-service, a través del API Gateway (Entrega 4, vía real)
+  # A diferencia de auth/tickets/ai/reports (cuyo servers: ya incluye el segmento del
+  # recurso porque cada uno tiene mas de una ruta debajo), notification-service solo
+  # tiene un endpoint real (la coleccion en si, GET /api/v1/notifications, sin
+  # sub-recursos) -- si el servers: tambien terminara en "/notifications", el path de
+  # abajo (que necesita seguir siendo "/notifications", no "/", porque "/" ya lo usa
+  # tickets_gateway en este mismo documento) duplicaria el segmento y resolveria a
+  # /api/v1/notifications/notifications, que no existe (hallazgo real de una revision
+  # externa: ese cliente generado daba 404). Este servers: se detiene en /api/v1.
   - &notifications_gateway
-    url: http://localhost:8000/api/v1/notifications
+    url: http://localhost:8000/api/v1
     description: notification-service, a través del API Gateway (Entrega 4, vía real)
   - &ai_gateway
     url: http://localhost:8000/api/v1/ai
@@ -41,7 +49,7 @@ servers:
     url: http://localhost:8002/api/v1/tickets
     description: ticket-service, puerto directo (solo depuración local, Entrega 2)
   - &notifications_direct
-    url: http://localhost:8003/api/v1/notifications
+    url: http://localhost:8003/api/v1
     description: notification-service, puerto directo (solo depuración local, Entrega 2)
   - &ai_direct
     url: http://localhost:8004/api/v1/ai
@@ -608,20 +616,34 @@ paths:
                   type: string
                   format: byte
                   nullable: true
+                  maxLength: 8000000
                   description: >-
                     Foto de evidencia del cierre en sitio, codificada en Base64. Opcional: solo
                     la manda la app móvil cuando status=RESUELTO (Entregable 10 de la guía de
                     cierre); en cualquier otra transición el servicio la ignora aunque llegue.
+                    Límite de 8 000 000 caracteres (~6 MB decodificados), igual que
+                    @Size(max=8_000_000) en UpdateStatusRequest.java — el móvil comprime la foto
+                    antes de enviarla (TicketDetailScreen.kt) para quedar muy por debajo.
                 latitude:
                   type: number
                   format: double
                   nullable: true
-                  description: Latitud GPS capturada al cerrar en sitio. Opcional, mismo caso que evidencePhotoBase64.
+                  minimum: -90
+                  maximum: 90
+                  description: >-
+                    Latitud GPS capturada al cerrar en sitio. Opcional, mismo caso que
+                    evidencePhotoBase64. Rango geométrico válido de coordenadas, igual que
+                    @DecimalMin/@DecimalMax en UpdateStatusRequest.java.
                 longitude:
                   type: number
                   format: double
                   nullable: true
-                  description: Longitud GPS capturada al cerrar en sitio. Opcional, mismo caso que evidencePhotoBase64.
+                  minimum: -180
+                  maximum: 180
+                  description: >-
+                    Longitud GPS capturada al cerrar en sitio. Opcional, mismo caso que
+                    evidencePhotoBase64. Rango geométrico válido de coordenadas, igual que
+                    @DecimalMin/@DecimalMax en UpdateStatusRequest.java.
       responses:
         "200":
           description: Estado actualizado

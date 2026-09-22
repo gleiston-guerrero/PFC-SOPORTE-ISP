@@ -16,15 +16,25 @@ rules:
   # se cuenta el numero de tipos de contenido declarados, no solo si la clave existe. Es justo
   # el hueco que senalo el profesor en la Entrega 4 (4 de 17 operaciones sin esquema de
   # respuesta; al revisar el resto, en realidad eran 11 de 17).
+  #
+  # Segunda correccion (evaluacion externa posterior, mutando el contrato de verdad): el
+  # "given" anterior apuntaba directo a ".content", asi que si "content" no existe en absoluto
+  # (mutacion: quitarlo de /logout 200), el selector JSONPath no encuentra nada que evaluar y
+  # Spectral no reporta ninguna violacion -- "no hay nada que revisar" en vez de "falta algo
+  # obligatorio". El "given" ahora apunta al objeto de la respuesta 2xx en si (no a ".content"),
+  # para que la ausencia de "content" tambien caiga bajo la regla.
   response-schema-required:
     description: Toda respuesta 2xx debe declarar al menos un tipo de contenido
     message: "{{property}} no declara ningun tipo de contenido en su respuesta de exito"
     severity: error
-    given: "$.paths[*][*].responses[?(@property.match(/^2/))].content"
+    given: "$.paths[*][*].responses[?(@property.match(/^2/))]"
     then:
-      function: length
+      field: content
+      function: schema
       functionOptions:
-        min: 1
+        schema:
+          type: object
+          minProperties: 1
 
   # La regla anterior sola no alcanzaba: "content: {application/json: {}}" o
   # "content: {text/plain: {}}" (un tipo de contenido declarado, pero sin schema) la pasaban --
@@ -35,11 +45,21 @@ rules:
   # romper nada. Esta regla exige que TODO tipo de contenido declarado en una respuesta 2xx
   # tenga un schema no vacio -- no solo application/json, para no dejar el mismo hueco abierto
   # en text/csv u otro tipo que se agregue despues.
+  #
+  # Segunda correccion (evaluacion externa posterior): "function: truthy" sobre "field: schema"
+  # aceptaba "schema: {}" -- un objeto vacio es truthy en JS, asi que la mutacion "quitar el
+  # cuerpo del schema mas no la clave" pasaba igual, pese a que esta misma regla (y
+  # pruebas_cicd.tex) dicen "esquema no vacio". Mismo arreglo que la regla anterior: se exige
+  # por JSON Schema que "schema" sea un objeto con al menos una propiedad, no solo que exista.
   response-content-schema-required:
-    description: Todo tipo de contenido de una respuesta 2xx debe declarar un schema
+    description: Todo tipo de contenido de una respuesta 2xx debe declarar un schema no vacío
     message: "{{property}} no declara un schema no vacio"
     severity: error
     given: "$.paths[*][*].responses[?(@property.match(/^2/))].content[*]"
     then:
       field: schema
-      function: truthy
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          minProperties: 1
