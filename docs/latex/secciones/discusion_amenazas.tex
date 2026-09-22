@@ -50,10 +50,17 @@ Sección~\ref{sec:iso25010}), a nivel de todo el proyecto:
         of Docker}) que impidió ejecutar una prueba de integración específica localmente —mitigado
         porque esa misma prueba sí corre en verde en el \emph{runner} de GitHub Actions, que
         ejecuta Maven directo sobre la máquina virtual sin anidar Docker.
-  \item \textbf{Datos de demostración generados sintéticamente}: los 504+ tickets de prueba se
-        generaron y rebalancearon con un script SQL propio, no provienen de un ISP real —mitigado
-        documentando explícitamente el script de generación (\texttt{resultados/rebalance\_demo\_tickets.sql})
-        para que la distribución de estados sea auditable y reproducible.
+  \item \textbf{Datos de demostración generados sintéticamente}: los tickets de prueba (150\,000
+        filas, distribuidas cada 210 segundos a lo largo de 2026 para cubrir las cuatro
+        particiones trimestrales, \texttt{generate\_series(1, 150000)}) no provienen de un ISP
+        real —mitigado documentando explícitamente el script de generación
+        (\texttt{db-cluster/scripts/seed\_partitioned.sql}, o su variante en lotes
+        \texttt{seed\_partitioned\_batched.sql} para evitar el OOM de una única transacción de
+        150\,000 filas) para que la distribución de estados sea auditable y reproducible. Una
+        revisión propia posterior a esta entrega encontró que una versión anterior de este mismo
+        párrafo citaba una cifra (504+) y una ruta (\texttt{resultados/rebalance\_demo\_tickets.sql})
+        que no corresponden a ningún archivo del repositorio ni a ninguna corrida real —se
+        corrige aquí a la cifra y la ruta que sí se pueden reproducir ejecutando el guion citado.
 \end{enumerate}
 
 \textbf{Externas}:

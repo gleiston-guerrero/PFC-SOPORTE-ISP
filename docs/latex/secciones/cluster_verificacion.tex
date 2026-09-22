@@ -42,9 +42,14 @@ aislamiento \texttt{SERIALIZABLE} o los tipos nativos \texttt{UUID}/\texttt{STRI
 suite de pruebas de integración basada en Testcontainers
 (\texttt{TicketRepositoryIntegrationTest.java}) que levanta un contenedor real de
 \texttt{cockroachdb/cockroach:latest-v23.2} en modo \texttt{start-single-node} para cada ejecución
-de la suite, aplica el esquema real (idéntico al de \texttt{init\_db.sql}) mediante JDBC antes de
-que Spring construya el contexto de la aplicación, y lo descarta automáticamente al finalizar
-(limpieza gestionada por el \emph{sidecar} Ryuk de Testcontainers, sin intervención manual).
+de la suite y lo descarta automáticamente al finalizar (limpieza gestionada por el
+\emph{sidecar} Ryuk de Testcontainers, sin intervención manual). El esquema ya no lo crea la
+prueba a mano: con \texttt{flyway-core} en el \emph{classpath}, Spring Boot aplica
+automáticamente la migración real
+\texttt{V1\_\_init\_ticket\_schema.sql} (Entregable 5 de la guía de cierre) contra esa misma base
+al construir el contexto de la aplicación —el guion suelto \texttt{db-cluster/scripts/init\_db.sql}
+que esta prueba citaba antes de esa corrección ya no existe en el repositorio, precisamente para
+que una migración rota se detecte aquí en vez de poder divergir en silencio de un guion aparte.
 
 La suite contiene dos pruebas. La primera ejerce el mismo \texttt{TicketRepository} usado en
 producción con una operación real de guardado y búsqueda por \texttt{findByTicketId(UUID)} —el

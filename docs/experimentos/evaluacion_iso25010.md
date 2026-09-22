@@ -285,9 +285,12 @@ El informe real de JaCoCo de esta corrida está en
 
 **Externas:**
 
-1. **Datos de demo, no tráfico real**: los 504 tickets y las cuentas de prueba (`cliente@test.com`,
-   `admin@soporte.local`) son datos sintéticos (ver `resultados/rebalance_demo_tickets.sql`) — la
-   distribución de tamaños de payload y patrones de acceso podría diferir del uso real de un ISP.
+1. **Datos de demo, no tráfico real**: los tickets y las cuentas de prueba (`cliente@test.com`,
+   `admin@soporte.local`) son datos sintéticos (ver `db-cluster/scripts/seed_partitioned.sql`,
+   150 000 filas generadas con `generate_series(1, 150000)` — no `resultados/rebalance_demo_tickets.sql`,
+   una ruta citada aquí antes que no corresponde a ningún archivo real del repositorio, corregida
+   en una revisión propia posterior) — la distribución de tamaños de payload y patrones de acceso
+   podría diferir del uso real de un ISP.
 2. **2 de 10 tipos de prueba de la pirámide completa no se incluyen en este ciclo** (Espresso
    instrumentado, por falta de emulador conectado) — la Adecuación funcional reportada (100%) es
    sobre lo que sí se pudo ejecutar, no sobre el 100% de la pirámide planeada.
