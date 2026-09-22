@@ -1,6 +1,11 @@
-# OpenTelemetry Collector -- punto unico donde confluyen las 3 señales de observabilidad
-# (metricas, logs, trazas) de los 3 microservicios Java instrumentados (auth-service,
-# ticket-service, report-service), antes de exportarlas a sus backends respectivos.
+# OpenTelemetry Collector -- punto por donde pasan las trazas OTLP de los cinco
+# microservicios Java instrumentados (auth-service, ticket-service, report-service,
+# api-gateway y telemetry-service, los cinco con el mismo agente -javaagent en su
+# Dockerfile) antes de reexportarlas a Tempo. Metricas y logs NO viajan por aqui via
+# OTLP (cada servicio fija OTEL_METRICS_EXPORTER=none y OTEL_LOGS_EXPORTER=none en
+# docker-compose.yml): las metricas las scrapea Prometheus directo de cada
+# /actuator/prometheus (ver ops/prometheus/prometheus.yml), y los logs quedan en JSON
+# estructurado en la salida de cada contenedor, sin backend de logs centralizado.
 # Ver Guia de Entrega 4, Modulo F.
 
 receivers:

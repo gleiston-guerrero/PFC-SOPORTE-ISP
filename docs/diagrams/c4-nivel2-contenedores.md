@@ -12,6 +12,19 @@ vanilla (reemplazado por `apps/web`), se agrega el `api-gateway` como único pun
 (antes los clientes llamaban a cada microservicio directo), se agregan `apps/mobile` y
 `telemetry-service`, y se agrega la pila de observabilidad como grupo de contenedores.
 
+**Nota de vigencia (revisión propia posterior)**: el `.png` incrustado en el manuscrito
+(`c4-nivel2-contenedores.png`) se exportó antes de esta corrección y todavía muestra "Scrape de
+/actuator/prometheus x6" (el conteo real, verificado contra `ops/prometheus/prometheus.yml`, es
+**4**: auth, ticket, report y api-gateway — `telemetry-service` expone el endpoint pero nadie lo
+scrapea todavía) y le faltan las relaciones `api-gateway → otel-collector` y
+`telemetry-service → otel-collector` (las cinco instancias Java sí exportan trazas por OTLP,
+verificado en los cinco `Dockerfile` y en `docker-compose.yml`). El bloque Mermaid de abajo ya
+tiene las tres correcciones; `mermaid-cli` (`npx @mermaid-js/mermaid-cli`) está disponible en esta
+máquina pero su capa de auto-layout produce texto superpuesto e ilegible en este diagrama en
+concreto (probado con varias configuraciones) — hace falta re-exportar a mano desde
+[mermaid.live](https://mermaid.live), que sí lo distribuye legible, y reemplazar el PNG del
+manuscrito antes de que esta corrección sea visible en el PDF.
+
 ```mermaid
 C4Container
     title Sistema de Soporte Técnico ISP — equipo ACC (Nivel 2: Contenedores, Entrega 4)
@@ -39,7 +52,7 @@ C4Container
 
         Container_Boundary(obs, "Observabilidad") {
             Container(otel, "otel-collector", "OpenTelemetry Collector", "Agregador de métricas/logs/trazas")
-            Container(prom, "Prometheus", "TSDB", "Scrape de /actuator/prometheus x6")
+            Container(prom, "Prometheus", "TSDB", "Scrape de /actuator/prometheus x4 (auth, ticket, report, api-gateway)")
             Container(tempo, "Tempo", "Backend de trazas", "Trazas distribuidas por trace_id")
             Container(grafana, "Grafana", "Dashboard", "6 vistas: peticiones, p50/p95/p99, 5xx, Raft, contenedores")
         }
@@ -72,10 +85,12 @@ C4Container
     Rel(ai, mongo, "Guarda clasificaciones", "ai_db")
     Rel(notif, mongo, "Guarda notificaciones simuladas", "notifications_db")
 
-    Rel(auth, otel, "Exporta métricas/trazas", "OTLP")
-    Rel(ticket, otel, "Exporta métricas/trazas", "OTLP")
-    Rel(report, otel, "Exporta métricas/trazas", "OTLP")
-    Rel(otel, prom, "Métricas", "remote_write")
+    Rel(auth, otel, "Exporta trazas", "OTLP")
+    Rel(ticket, otel, "Exporta trazas", "OTLP")
+    Rel(report, otel, "Exporta trazas", "OTLP")
+    Rel(gateway, otel, "Exporta trazas", "OTLP")
+    Rel(telemetry, otel, "Exporta trazas", "OTLP")
+    Rel(otel, prom, "Métricas propias del collector (no las de aplicación: cada servicio Java expone las suyas por scrape directo, arriba)", "remote_write")
     Rel(otel, tempo, "Trazas", "OTLP")
     Rel(grafana, prom, "Consulta PromQL", "HTTP")
     Rel(grafana, tempo, "Consulta trazas", "HTTP")
