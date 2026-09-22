@@ -15,7 +15,7 @@ erDiagram
         TIMESTAMPTZ created_at PK "particion: RANGE, 4 trimestres 2026"
         UUID id PK "indice unico secundario tickets_id_key"
         STRING zone "indexado (idx_tickets_zone), ya NO es la clave de fragmentacion"
-        UUID client_id "indexado implicitamente via findByClientId"
+        UUID client_id "SIN indice propio -- findByClientId escanea sin apoyo de indice (verificado: SHOW INDEXES FROM tickets solo lista tickets_pkey, tickets_id_key, idx_tickets_zone e idx_tickets_status)"
         UUID technician_id FK "nullable, referencia technicians(id)"
         STRING category "nullable, la completa ai-service via Kafka"
         STRING priority "nullable, la completa ai-service via Kafka"
@@ -46,7 +46,7 @@ erDiagram
 
     INCIDENCIA_TICKETS {
         UUID incidencia_id PK, FK "referencia incidencias(id)"
-        UUID ticket_id PK "NOT NULL, sin FK declarada a tickets(id) -- distinta base logica dentro del mismo cluster"
+        UUID ticket_id PK "NOT NULL, sin FK declarada a tickets(id) -- misma base (ticket_db), la migracion V1 simplemente no la declaro"
     }
 
     NETWORK_INCIDENTS_SUMMARY {
@@ -63,8 +63,9 @@ erDiagram
 ```
 
 `incidencia_tickets.ticket_id` no lleva una restricción `REFERENCES tickets(id)` real en
-`V1__init_ticket_schema.sql` —se deja como `UUID NOT NULL` simple—, así que el diagrama no
-dibuja esa relación como una FK aplicada por la base; la integridad la mantiene la lógica de
+`V1__init_ticket_schema.sql` —se deja como `UUID NOT NULL` simple, dentro de la misma base
+`ticket_db` que `tickets` (verificado: `SHOW TABLES` lista ambas)—, así que el diagrama no dibuja
+esa relación como una FK aplicada por la base; la integridad la mantiene la lógica de
 `CorrelationService` (Sección de Arquitectura), no una restricción de esquema.
 
 ## Notas de diseño

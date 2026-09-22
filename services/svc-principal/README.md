@@ -59,13 +59,13 @@ curl -X POST http://localhost:8002/api/v1/tickets \
 
 ## Nota sobre verificación
 
-Este esqueleto fue generado con asistencia de IA (ver `/ai-usage-declaration.md` en la raíz del
-repo) y **no pudo compilarse en el entorno donde se generó** porque no tiene acceso a Maven
-Central. Antes de dar por buena esta base, correr en tu máquina:
+Sección obsoleta corregida (revisión propia posterior): describía el esqueleto inicial del
+servicio como "generado con asistencia de IA, no pudo compilarse... correr `mvn clean test`, que
+corre `TicketServiceTest`" — `TicketServiceTest` no existe desde el refactor a 4 capas (el
+monolítico `TicketService.java` se dividió en los manejadores de `application/command/`), y el
+servicio compila y pasa sus pruebas desde hace muchas rondas de este proyecto. Para verificar hoy:
 
 ```bash
-mvn clean test      # corre TicketServiceTest (no requiere el cluster levantado)
+mvn clean test      # 156 pruebas (1 omitida: TicketServiceProviderPactTest, solo con -Dpact.verifier.publishResults=true)
 mvn clean package   # build completo
 ```
-
-y reportar cualquier error de compilación para corregirlo.

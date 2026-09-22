@@ -18,8 +18,12 @@ vanilla (reemplazado por `apps/web`), se agrega el `api-gateway` como único pun
 **4**: auth, ticket, report y api-gateway — `telemetry-service` expone el endpoint pero nadie lo
 scrapea todavía) y le faltan las relaciones `api-gateway → otel-collector` y
 `telemetry-service → otel-collector` (las cinco instancias Java sí exportan trazas por OTLP,
-verificado en los cinco `Dockerfile` y en `docker-compose.yml`). El bloque Mermaid de abajo ya
-tiene las tres correcciones; `mermaid-cli` (`npx @mermaid-js/mermaid-cli`) está disponible en esta
+verificado en los cinco `Dockerfile` y en `docker-compose.yml`); tampoco refleja que
+Prometheus **scrapea** al collector (no al revés) — una revisión externa posterior encontró que
+mi primera corrección de esta relación decía `remote_write` (push), cuando
+`ops/otel-collector/config.yaml` solo declara un exportador `prometheus` (expone `:8889` para que
+lo scrapeen), sin ningún exportador `prometheusremotewrite`. El bloque Mermaid de abajo ya
+tiene las cuatro correcciones; `mermaid-cli` (`npx @mermaid-js/mermaid-cli`) está disponible en esta
 máquina pero su capa de auto-layout produce texto superpuesto e ilegible en este diagrama en
 concreto (probado con varias configuraciones) — hace falta re-exportar a mano desde
 [mermaid.live](https://mermaid.live), que sí lo distribuye legible, y reemplazar el PNG del
@@ -90,7 +94,7 @@ C4Container
     Rel(report, otel, "Exporta trazas", "OTLP")
     Rel(gateway, otel, "Exporta trazas", "OTLP")
     Rel(telemetry, otel, "Exporta trazas", "OTLP")
-    Rel(otel, prom, "Métricas propias del collector (no las de aplicación: cada servicio Java expone las suyas por scrape directo, arriba)", "remote_write")
+    Rel(prom, otel, "Scrape :8889", "HTTP")
     Rel(otel, tempo, "Trazas", "OTLP")
     Rel(grafana, prom, "Consulta PromQL", "HTTP")
     Rel(grafana, tempo, "Consulta trazas", "HTTP")

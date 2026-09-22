@@ -139,12 +139,14 @@ build-mobile-apk, integration): [`.github/workflows/ci-cd.yml`](.github/workflow
   montando la **raíz del repositorio** (no solo `docs/`: las figuras de
   `aplicacion_web.tex`/`aplicacion_movil.tex` referencian
   `../../release/screenshots/*.png`, fuera de `docs/` — montar solo `docs/` pierde esas 6
-  figuras y compila 65 páginas en vez de 67, con `! Package pdftex.def Error: File ... not
+  figuras y compila 65 páginas en vez de 68, con `! Package pdftex.def Error: File ... not
   found`, un error real que una versión anterior de esta instrucción no reproducía) y
   ejecutando los mismos cuatro comandos dentro del contenedor. Verificado:
   `docker run --rm -v "$(pwd):/repo" -w /repo/docs/latex texlive/texlive:latest bash -c
-  "pdflatex ... && bibtex main && pdflatex ... && pdflatex ..."` compila las 67 páginas sin
-  errores, igual que la compilación sin Docker.
+  "pdflatex ... && bibtex main && pdflatex ... && pdflatex ..."` compila las 68 páginas sin
+  errores, igual que la compilación sin Docker. (El recuento exacto de páginas cambia con cada
+  corrección de contenido — verificar con `pdfinfo docs/latex/main.pdf | grep Pages` antes de
+  confiar en el número de esta instrucción si ha pasado tiempo desde la última actualización.)
 - **Documento vivo vs. documento congelado (Entregable 26 de la guía de cierre).** `docs/latex/`
   de arriba es el documento vivo: se sigue editando y su PDF se recompila en cada `push` a `main`
   (tanto en CI como en el [Release `v1.0-entrega-final`](../../releases/tag/v1.0-entrega-final)),

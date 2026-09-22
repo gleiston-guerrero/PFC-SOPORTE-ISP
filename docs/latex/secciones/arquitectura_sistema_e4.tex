@@ -34,14 +34,18 @@ un grupo de contenedores transversal. La Figura~\ref{fig:c4-nivel2} muestra el d
 \begin{figure}[H]
 \centering
 \includegraphics[width=\textwidth,height=0.92\textheight,keepaspectratio]{../diagrams/c4-nivel2-contenedores.png}
-\caption{C4 Nivel 2 — contenedores del sistema, Entrega 4. \emph{Nota de vigencia}: una revisión
-propia posterior a esta figura encontró dos imprecisiones en su fuente Mermaid, ya corregidas en
-\texttt{docs/diagrams/c4-nivel2-contenedores.md} pero pendientes de re-exportar a esta imagen (sin
-renderizador Mermaid local que reproduzca la calidad de mermaid.live para este diagrama, igual que
-la limitación ya documentada para el Nivel 3): el rótulo de Prometheus decía «x6» donde el conteo
-real, verificado contra \texttt{ops/prometheus/prometheus.yml}, es 4; y faltaban las relaciones
+\caption{C4 Nivel 2 — contenedores del sistema, Entrega 4. \emph{Nota de vigencia}: revisiones
+propias posteriores a esta figura encontraron cuatro imprecisiones en su fuente Mermaid, ya
+corregidas en \texttt{docs/diagrams/c4-nivel2-contenedores.md} pero pendientes de re-exportar a
+esta imagen (sin renderizador Mermaid local que reproduzca la calidad de mermaid.live para este
+diagrama en concreto —probado dos veces con \texttt{mermaid-cli}, con y sin acortar etiquetas,
+mismo resultado ilegible—, igual que la limitación ya documentada para el Nivel 3): el rótulo de
+Prometheus decía «x6» donde el conteo real, verificado contra
+\texttt{ops/prometheus/prometheus.yml}, es 4; faltaban las relaciones
 \texttt{api-gateway}/\texttt{telemetry-service} $\to$ \texttt{otel-collector}, que sí exportan
-trazas en el código actual.}
+trazas en el código actual; y la relación Prometheus/collector decía \texttt{remote\_write}
+(push) cuando en realidad es un \emph{scrape} (Prometheus extrae, no el collector empuja —
+\texttt{ops/otel-collector/config.yaml} no declara ningún exportador \texttt{prometheusremotewrite}).}
 \label{fig:c4-nivel2}
 \end{figure}
 
