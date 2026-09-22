@@ -66,6 +66,16 @@ servidor y solo se perdió la respuesta, el segundo no vuelve a mover \texttt{re
 recalcular el incumplimiento de SLA, y el servidor exige la evidencia cuando quien cierra es un
 \texttt{TECNICO} (un \texttt{ADMIN} puede seguir resolviendo un ticket sin pasar por el móvil).
 
+Una revisión externa encontró que la foto se enviaba sin comprimir: el JPEG crudo de la cámara
+pesa \textasciitilde{}2,4\,MB (\textasciitilde{}3,2\,MB ya codificado en Base64), muy por encima
+de la recomendación de CockroachDB de mantener una columna \texttt{BYTES} bajo
+\textasciitilde{}1\,MiB (\texttt{V3\_\_add\_close\_evidence.sql} declara el límite de tamaño del
+contrato, no el tamaño recomendado). \texttt{TicketDetailScreen.kt} redimensiona la foto a un
+máximo de 1600\,px en su lado más largo y la recodifica a JPEG con calidad decreciente
+(85\,\%$\to$25\,\% en pasos de 15) hasta bajar de 800\,KB antes de codificarla en Base64 y
+enviarla, con la imagen original y la redimensionada liberadas explícitamente
+(\texttt{Bitmap.recycle()}) al terminar.
+
 La Figura~\ref{fig:movil-capturas} muestra ambas capacidades reales en el emulador
 (\texttt{Medium\_Phone\_API\_36.0}), instalando el mismo APK de depuración que produce el
 \emph{job} \texttt{build-mobile-apk} de CI/CD: el listado (que además exhibe en vivo el modo sin
